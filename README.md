@@ -16,7 +16,7 @@ Many state-of-the-art deep learning algorithms require both a large training dat
 
 ## Installation:
 
-### Required Dependencies: (sorry no install script or docker)
+### Required Dependencies:
 - python 3.8 (other versions may work as well, but untested)
 - pytorch
 - torchvision
@@ -33,6 +33,7 @@ The following instructions will set up the repository for training and inference
 3. `mkdir data && cd data`
 4. `wget https://cmu.box.com/s/3fngoljhcwhqf2z5cbepufh331qtesxt`
 5. `unzip yamaha_v0.zip`
+6. Use the `requirements.txt` file to set up your environment.
 
 ## Running:
 
