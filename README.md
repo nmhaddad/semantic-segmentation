@@ -2,17 +2,14 @@
 A transfer learning follow-up using DeepLabV3+ and the Yamaha-CMU Off-Road Dataset
 
 ### Authors:
-Nate Haddad - *haddad[dot]na[at]northeastern[dot]edu*  
-Amit Mulay - *mulay[dot]am[at]northeastern[dot]edu*  
-
-Northeastern University - *academic project*
+Nate Haddad - *nhaddad2112[at]gmail[dot]com*
 
 ![Semantic segmentation of off-road images](media/seg_overlay.png)
 
 ## Abstract:
 Many state-of-the-art deep learning algorithms require both a large training dataset and compute power, which for a variety of reasons is not always available to the user. Training large networks from scratch becomes tedious, and time consumer for the end-user. Transfer learning is a machine learning method where the transfer of knowledge from one domain to another, which ultimately eliminates the need to train from scratch using randomly initialized networks and benchmark datasets. Transfer is a popular technique in the computer vision field, given the vast compute and time resources required to train neural network architectures. In this paper, we will examine the effect of transfer learning on large encoder-decoder style deep neural networks applied to the task of semantic segmentation. DeepLabv3+ is one such architecture that was state-of-the-art at the time of its publishing in 2018. By applying depth-wise separable convolution to altrous spatial pyramid pooling and decoder modules, DeepLabv3+ was able to successfully incorporate techniques from the 2016 Xception model, resulting in faster, more powerful, and larger networks. We propose extending the use of a pre-trained DeepLabv3+ model to the challenging task of off-road perception. Utilizing the newly available Yamaha-CMU Off-Road Dataset, we successfully employ transfer learning techniques to a pre-trained model for the task of semantic segmentation of off-road images.  
 
-[Request the report](mailto:nhaddad2112@gmail.com)
+[Request the paper](nhaddad2112@gmail.com)
 
 ## Installation:
 
@@ -20,7 +17,7 @@ Many state-of-the-art deep learning algorithms require both a large training dat
 
 The following instructions will set up the repository for training and inference. It creates a `data` directory, which is used to store training data. Steps 3 and 4 will download and unzip the *[Yamaha-CMU Off-Road Dataset](https://theairlab.org/yamaha-offroad-dataset/)* to the `data` directory.
 
-1. `git clone <repo>`
+1. `git clone https://github.com/nmhaddad/semantic-segmentation.git`
 2. `mkdir data && cd data`
 3. `wget https://cmu.box.com/s/3fngoljhcwhqf2z5cbepufh331qtesxt`
 4. `unzip yamaha_v0.zip`

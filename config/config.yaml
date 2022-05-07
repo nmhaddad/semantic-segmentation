@@ -1,15 +1,15 @@
-DATA_PATH: 'data/yamaha_v0/'
-MODEL_PATH: 'models/model_v0.1.pt'
+DATA_PATH: data/yamaha_v0/
+
+SAVE_MODEL_PATH: models/model_v0.1.pt
+LOAD_MODEL_PATH: models/model_v0.1.8.50.pt
 
 # image resize variables
 IMG_HEIGHT: 256
 IMG_WIDTH: 256
 
-NUM_EPOCHS: 1
+NUM_EPOCHS: 100
 NUM_MASK_CHANNELS: 8
 BATCH_SIZE: 2
-
+LEARNING_RATE: 1e-4
 IS_INCEPTION: true
-
-MODEL_PATH: 'models/model_v0.1.8.50.pt'
 BACKBONE: RESNET101

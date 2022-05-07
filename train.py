@@ -48,8 +48,14 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     # train the model
-    trainer = Trainer(model, dataloaders, criterion, optimizer, num_epochs=config['NUM_EPOCHS'], is_inception=config['IS_INCEPTION'])
+    trainer = Trainer(model, dataloaders, criterion, optimizer,
+                      num_epochs=config['NUM_EPOCHS'],
+                      is_inception=config['IS_INCEPTION'])
     trainer._train()
 
     # save the model
-    torch.save(model, config['SAVE_MODEL_PATH'])
+    model_path = config.get('SAVE_MODEL_PATH', 
+                            'models/model_v1.{}.{}.pth'.format(
+                                config['BATCH_SIZE'], 
+                                config['NUM_EPOCHS']))
+    torch.save(model, model_path)
