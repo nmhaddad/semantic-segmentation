@@ -10,6 +10,8 @@ Many state-of-the-art deep learning algorithms require both a large training dat
 
 Please email me for the full report
 
+![ResNet101 inference on off-road images](media/resnet101_output.png)
+
 ## Installation:
 
 ### Setting up the Repository: 
