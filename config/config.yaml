@@ -1,7 +1,7 @@
 # Paths
 DATA_PATH: data/yamaha_v0/
 SAVE_MODEL_PATH: models/model_v0.1.pt # Comment this out to autoname models
-LOAD_MODEL_PATH: models/mobilenetv3large_v.1.50.pt
+LOAD_MODEL_PATH: models/mobilenetv3large_v1.50.pt
 
 # Image resize variables
 IMG_HEIGHT: 256
