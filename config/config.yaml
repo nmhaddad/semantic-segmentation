@@ -1,12 +1,13 @@
+# Paths
 DATA_PATH: data/yamaha_v0/
+SAVE_MODEL_PATH: models/model_v0.1.pt # Comment this out to autoname models
+LOAD_MODEL_PATH: models/mobilenetv3large_v.1.50.pt
 
-SAVE_MODEL_PATH: models/model_v0.1.pt
-LOAD_MODEL_PATH: models/model_v0.1.8.50.pt
-
-# image resize variables
+# Image resize variables
 IMG_HEIGHT: 256
 IMG_WIDTH: 256
 
+# Hyperparameters
 NUM_EPOCHS: 50
 NUM_MASK_CHANNELS: 8
 BATCH_SIZE: 32
