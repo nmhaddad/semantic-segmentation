@@ -1,5 +1,0 @@
-torch>=1.8.0
-torchvision>=0.9.1
-opencv>=4.5.2
-matplotlib>=3.4.2
-tqdm>=4.38.0

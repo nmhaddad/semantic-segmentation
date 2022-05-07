@@ -1,10 +1,12 @@
+import glob
+
 import torch
 from torchvision import transforms
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from PIL import Image
-import glob
+
 
 def freeze_layers(model, start: int, stop: int) -> None:
     """ Freezes the layers of a nn from start to stop indices

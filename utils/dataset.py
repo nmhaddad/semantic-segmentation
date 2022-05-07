@@ -1,11 +1,13 @@
+import glob
+from typing import Any, Callable, Optional
+
 import torch
 from torchvision import transforms
 from torchvision.datasets.vision import VisionDataset
-import glob
 import numpy as np
-from typing import Any, Callable, Optional
 import cv2
 from PIL import Image
+
 
 class YamahaCMUDataset(VisionDataset):
     """ A class that represents the Yamaha-CMU Off-Road dataset
@@ -80,6 +82,7 @@ class YamahaCMUDataset(VisionDataset):
             sample["image"] = self.transforms(sample["image"])
             sample['mask'] = torch.as_tensor(sample['mask'], dtype=torch.uint8)
         return sample
+
 
 def get_dataloader(data_dir: str, batch_size: int=2, resize_shape: tuple=None) -> torch.utils.data.DataLoader:
     """ Creates a dataloader for the given dataset
