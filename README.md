@@ -1,8 +1,7 @@
 # Semantic segmentation of off-road images using transfer learning and DeepLabv3+
 A transfer learning follow-up using DeepLabV3+ and the Yamaha-CMU Off-Road Dataset
 
-### Authors:
-Nate Haddad - *nhaddad2112[at]gmail[dot]com*
+### Author: Nate Haddad - *nhaddad2112[at]gmail[dot]com*
 
 ![Semantic segmentation of off-road images](media/seg_overlay.png)
 
