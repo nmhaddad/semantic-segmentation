@@ -12,34 +12,35 @@ Northeastern University - *academic project*
 ## Abstract:
 Many state-of-the-art deep learning algorithms require both a large training dataset and compute power, which for a variety of reasons is not always available to the user. Training large networks from scratch becomes tedious, and time consumer for the end-user. Transfer learning is a machine learning method where the transfer of knowledge from one domain to another, which ultimately eliminates the need to train from scratch using randomly initialized networks and benchmark datasets. Transfer is a popular technique in the computer vision field, given the vast compute and time resources required to train neural network architectures. In this paper, we will examine the effect of transfer learning on large encoder-decoder style deep neural networks applied to the task of semantic segmentation. DeepLabv3+ is one such architecture that was state-of-the-art at the time of its publishing in 2018. By applying depth-wise separable convolution to altrous spatial pyramid pooling and decoder modules, DeepLabv3+ was able to successfully incorporate techniques from the 2016 Xception model, resulting in faster, more powerful, and larger networks. We propose extending the use of a pre-trained DeepLabv3+ model to the challenging task of off-road perception. Utilizing the newly available Yamaha-CMU Off-Road Dataset, we successfully employ transfer learning techniques to a pre-trained model for the task of semantic segmentation of off-road images.  
 
-[Read the report](media/report.pdf)
+[Request the report](mailto:nhaddad2112@gmail.com)
 
 ## Installation:
 
-### Required Dependencies:
-- python 3.8 (other versions may work as well, but untested)
-- pytorch
-- torchvision
-- opencv (python)
-- matplotlib
-- tqdm
-
 ### Setting up the Repository: 
 
-The following instructions will set up the repository for training and inference. It creates two required directories, `models` which is used to store saved models, and `data` which is used to store training data. Steps 4 and 5 will download and unzip the *[Yamaha-CMU Off-Road Dataset](https://theairlab.org/yamaha-offroad-dataset/)* to the `data` directory.
+The following instructions will set up the repository for training and inference. It creates a `data` directory, which is used to store training data. Steps 3 and 4 will download and unzip the *[Yamaha-CMU Off-Road Dataset](https://theairlab.org/yamaha-offroad-dataset/)* to the `data` directory.
 
 1. `git clone <repo>`
-2. `mkdir models`
-3. `mkdir data && cd data`
-4. `wget https://cmu.box.com/s/3fngoljhcwhqf2z5cbepufh331qtesxt`
-5. `unzip yamaha_v0.zip`
-6. Use the `requirements.txt` file to set up your environment.
+2. `mkdir data && cd data`
+3. `wget https://cmu.box.com/s/3fngoljhcwhqf2z5cbepufh331qtesxt`
+4. `unzip yamaha_v0.zip`
+
+### Installing Dependencies with Anaconda
+The simpliest way to get this repo up and running is to use our anaconda `environment.yaml` file:
+
+`conda create -f environment.yaml`
+
+To activate, run `conda activate semantic-segmentation`.
 
 ## Running:
 
-There are two notebooks, `training_demo.ipynb` and `inference_demo.ipynb` that make it simple to run the code here in the repository. Just make sure you have downloaded the *[Yamaha-CMU Off-Road Dataset](https://theairlab.org/yamaha-offroad-dataset/)* before training. Unless you have downloaded a model from this repo or somewhere else, it's likely you will need to train the model on your own. We intend to put a model up, but currently there isn't one.
+You can configure your training environment with the `config/config.yaml` file. This YAML file includes a variety of hyperparameters and paths for training and testing models. It's meant to simplify experimentation.
 
-You can also run `python3 train.py` to run a standalone training session. We have not yet set up an argparser for this, and you will need to adjust hyperparameters accordingly.
+There are two notebooks, `training_demo.ipynb` and `inference_demo.ipynb` that make it simple to run the code here in the repository. Just make sure you have downloaded the *[Yamaha-CMU Off-Road Dataset](https://theairlab.org/yamaha-offroad-dataset/)* before training.
+
+Run `python train.py` to run a standalone training session.
+
+Run `python test.py` to run a standalone inference session on single images.
 
 ## References:
 
