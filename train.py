@@ -23,17 +23,17 @@ if __name__ == '__main__':
                                  resize_shape=(config['IMG_HEIGHT'], config['IMG_WIDTH']))
 
     # create the model
-    if config['BACKBONE'] == 'RESNET101':
+    if config['BACKBONE'] == 'resnet101':
         model = models.segmentation.deeplabv3_resnet101(pretrained=True,
                                                         progress=True,
                                                         aux_loss=True)
         model.classifier = DeepLabHead(2048, config['NUM_MASK_CHANNELS'])
-    elif config['BACKBONE'] == 'RESNET50':
+    elif config['BACKBONE'] == 'resnet50':
         model = models.segmentation.deeplabv3_resnet50(pretrained=True,
                                                         progress=True,
                                                         aux_loss=True)
         model.classifier = DeepLabHead(2048, config['NUM_MASK_CHANNELS'])
-    elif config['BACKBONE'] == 'MOBILENETV3LARGE':
+    elif config['BACKBONE'] == 'mobilenetv3large':
         model = models.segmentation.deeplabv3_mobilenet_v3_large(pretrained=True,
                                                                 progress=True,
                                                                 aux_loss=True)
@@ -54,8 +54,7 @@ if __name__ == '__main__':
     trainer._train()
 
     # save the model
-    model_path = config.get('SAVE_MODEL_PATH', 
-                            'models/model_v1.{}.{}.pth'.format(
-                                config['BATCH_SIZE'], 
-                                config['NUM_EPOCHS']))
+    model_path = config.get('SAVE_MODEL_PATH',
+                            'models/{}_v1.{}.pth'.format(config['BACKBONE'],
+                                                         config['NUM_EPOCHS']))
     torch.save(model, model_path)

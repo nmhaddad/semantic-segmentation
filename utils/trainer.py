@@ -9,16 +9,23 @@ from .utils import mean_iou
 
 class Trainer:
 
-    def __init__(self, model, dataloaders, criterion, optimizer, num_epochs=25, is_inception=False):
+    def __init__(self, model, dataloaders, criterion, optimizer, num_epochs=25,
+                 is_inception=False):
         """ Initialization method for Trainer base class
-        
+
         Args:
-            model: (torchvision.models.segmentation.deeplabv3) the model used in training
-            dataloaders: (torch.utils.data.Dataloader) the dataloader to use
-            criterion: (torch.nn.CrossEntropyLoss) the loss function to use
-            optimizer: (torch.optim.Adam) the optimizer to use
-            num_epochs: (int=25) the number of epochs to train
-            is_inception: (bool) whether or not to use auxiliary outputs in training
+            model: (torchvision.models.segmentation.deeplabv3)
+                the model used in training
+            dataloaders: (torch.utils.data.Dataloader)
+                the dataloader to use
+            criterion: (torch.nn.CrossEntropyLoss)
+                the loss function to use
+            optimizer: (torch.optim.Adam)
+                the optimizer to use
+            num_epochs: (int=25)
+                the number of epochs to train
+            is_inception: (bool)
+                whether or not to use auxiliary outputs in training
         """
         self.model = model
         self.dataloaders = dataloaders

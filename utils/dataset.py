@@ -14,8 +14,10 @@ class YamahaCMUDataset(VisionDataset):
 
     Attributes:
 
-        root: (str) the root directory
-        transforms: (Optional[Callable]) torch transforms to use
+        root: (str)
+            the root directory
+        transforms: (Optional[Callable])
+            torch transforms to use
 
     Methods:
         __len__():
@@ -24,12 +26,15 @@ class YamahaCMUDataset(VisionDataset):
             returns the item at the given index of this dataset
     """
 
-    def __init__(self, root: str, resize_shape: tuple, transforms: Optional[Callable] = None) -> None:
+    def __init__(self, root: str, resize_shape: tuple,
+                 transforms: Optional[Callable] = None) -> None:
         """ Initializes a YamahaCMUDataset object
 
         Args:
-            root: (str) the root directory
-            transforms: (Optional[Callable]) torch transforms to use
+            root: (str)
+                the root directory
+            transforms: (Optional[Callable])
+                torch transforms to use
         """
         super().__init__(root, transforms)
         image_paths = []
@@ -56,7 +61,8 @@ class YamahaCMUDataset(VisionDataset):
         """ Returns the item at the given index of this dataset
 
         Args:
-            index: (int) the index of the item to get
+            index: (int)
+                the index of the item to get
 
         Returns:
             the sample at the given index
@@ -69,7 +75,9 @@ class YamahaCMUDataset(VisionDataset):
         mask = np.array(mask)
         class_colors = np.unique(mask)
         if self.resize:
-            mask = cv2.resize(mask, dsize=(self.image_height, self.image_width), interpolation=cv2.INTER_CUBIC)
+            mask = cv2.resize(mask,
+                              dsize=(self.image_height, self.image_width),
+                              interpolation=cv2.INTER_CUBIC)
         # remove void class (atv)
         if 0 in class_colors:
             class_colors = class_colors[1:]
@@ -84,12 +92,15 @@ class YamahaCMUDataset(VisionDataset):
         return sample
 
 
-def get_dataloader(data_dir: str, batch_size: int=2, resize_shape: tuple=None) -> torch.utils.data.DataLoader:
+def get_dataloader(data_dir: str, batch_size: int=2,
+                   resize_shape: tuple=None) -> torch.utils.data.DataLoader:
     """ Creates a dataloader for the given dataset
 
     Args:
-        data_dir: (str) the directory of the dataset
-        batch_size: (int=2) the batch size to use
+        data_dir: (str)
+            the directory of the dataset
+        batch_size: (int=2)
+            the batch size to use
 
     Returns:
         torch.utils.data.DataLoader

@@ -1,4 +1,5 @@
 import glob
+import os.path as op
 
 import torch
 from torchvision import transforms
@@ -12,9 +13,12 @@ def freeze_layers(model, start: int, stop: int) -> None:
     """ Freezes the layers of a nn from start to stop indices
 
     Args:
-        model: (torchvision.models) the model to use
-        start: (int) the starting index
-        stop: (int) the stopping index
+        model: (torchvision.models)
+            the model to use
+        start: (int)
+            the starting index
+        stop: (int)
+            the stopping index
 
     Returns:
         None
@@ -32,8 +36,10 @@ def mean_iou(outputs: torch.Tensor, labels: torch.Tensor) -> float:
         two tensors. Shape expected to be same.
 
     Args:
-        outputs: (torch.Tensor) the output of a model
-        labels: (torch.Tensor) the ground truth labels
+        outputs: (torch.Tensor)
+            the output of a model
+        labels: (torch.Tensor)
+            the ground truth labels
 
     Returns:
         float
@@ -64,8 +70,8 @@ def label_to_color_image(label: np.ndarray) -> np.ndarray:
         From https://github.com/tensorflow/models/tree/master/research/deeplab
 
     Args:
-        label: (np.ndarray) A 2D array with integer type, storing the
-                            segmentation label.
+        label: (np.ndarray)
+            A 2D array with integer type, storing the segmentation label.
 
     Returns:
         A 2D array with floating type. The element of the array
@@ -110,15 +116,17 @@ def vis_segmentation(image: np.ndarray, seg_map: np.ndarray) -> None:
         From https://github.com/tensorflow/models/tree/master/research/deeplab
 
     Args:
-        image: (np.ndarray) the rgb image
-        seg_map: (np.ndarray) the mask to overlay
+        image: (np.ndarray)
+            the rgb image
+        seg_map: (np.ndarray)
+            the mask to overlay
 
     Returns:
         None
     """
     label_names = np.asarray([
-        'non-traversable', 'rough trail', 'smooth trail', 'traversable grass', 'low vegetation',
-        'obstacle', 'high vegetation', 'sky'
+        'non-traversable', 'rough trail', 'smooth trail', 'traversable grass',
+        'low vegetation', 'obstacle', 'high vegetation', 'sky'
     ])
 
     full_label_map = np.arange(len(label_names)).reshape(len(label_names), 1)
@@ -154,6 +162,7 @@ def vis_segmentation(image: np.ndarray, seg_map: np.ndarray) -> None:
     plt.grid('off')
     plt.show()
 
+
 def display_example_pair(image: np.ndarray, mask: np.ndarray) -> None:
     """ Visualizes input image and segmentation map. Used for visualizations.
 
@@ -164,7 +173,7 @@ def display_example_pair(image: np.ndarray, mask: np.ndarray) -> None:
     Returns:
         None
     """
-    fig, ax = plt.subplots(1,2,figsize=(15,15))
+    _, ax = plt.subplots(1, 2, figsize=(15, 15))
     ax[0].imshow(image)
     ax[0].axis('off')
     ax[0].set_title('Original Image')
@@ -172,19 +181,24 @@ def display_example_pair(image: np.ndarray, mask: np.ndarray) -> None:
     ax[1].axis('off')
     ax[1].set_title('Mask')
 
-def vis_grid_4x3(model) -> None:
+
+def vis_grid_4x3(model, data_path: str) -> None:
     """ Visualizes a grid of original, mask, and predicted mask images.
-        Used to visualize the results of multiple images after running inference.
+        Used to visualize the results of multiple images after running
+        inference.
 
     Args:
-        model: (torchvision.models) the model to use to run inference
+        model: (torchvision.models)
+            the model to use to run inference
 
     Returns:
         None
     """
     images = []
-    pair_directories = ['data/yamaha_v0/train/iid000183', 'data/yamaha_v0/train/iid000657',
-                        'data/yamaha_v0/train/iid000499', 'data/yamaha_v0/train/iid001092']
+    pair_directories = [op.join(data_path, 'train/iid000183'),
+                        op.join(data_path, 'train/iid000657'),
+                        op.join(data_path, 'train/iid000499'),
+                        op.join(data_path, 'train/iid001092')]
     brown = [139, 69, 19]
     dark_green = [0, 100, 0]
     forest_green = [34, 139, 34]
@@ -193,7 +207,8 @@ def vis_grid_4x3(model) -> None:
     red = [255, 0, 0]
     green = [0, 255, 0]
     white = [255, 255, 255]
-    colors = torch.as_tensor([white, green, brown, gray, forest_green, red, dark_green, sky])
+    colors = torch.as_tensor([white, green, brown, gray, forest_green, red,
+                              dark_green, sky])
     colors = (colors).numpy().astype("uint8")
     for i in range(4):
         image_mask_pair = glob.glob(pair_directories[i] + '/*')
@@ -210,19 +225,23 @@ def vis_grid_4x3(model) -> None:
     col = ['Original', 'Mask', 'Ours']
     for i in range(len(images)):
         ax = plt.subplot(4, 3, i+1)
-        if i < 3: ax.set_title(col[i])
+        if i < 3:
+            ax.set_title(col[i])
         plt.imshow(images[i])
         plt.axis("off")
     plt.subplots_adjust(wspace=.01, hspace=-0.6)
-    # plt.savefig('sample.png', bbox_inches=0, transparent="True", pad_inches=0)
+    # plt.savefig('sample.png', bbox_inches=0, transparent="True",
+    #             pad_inches=0)
 
 
 def run_inference(model, image):
     """ Runs inference on a single image with the given model
 
     Args:
-        model: (torchvision.models) the model to use
-        image: (np.ndarray) the image to use
+        model: (torchvision.models)
+            the model to use
+        image: (np.ndarray)
+            the image to use
 
     Returns:
         (Image) the segmentation map predicted by the model
@@ -243,4 +262,3 @@ def run_inference(model, image):
         output = model(input_batch)['out'][0]
     output_predictions = output.argmax(0)
     return Image.fromarray(output_predictions.byte().cpu().numpy()).resize(image.size)
-
