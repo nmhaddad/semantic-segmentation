@@ -1,3 +1,5 @@
+""" Class for training DeepLab models """
+
 import time
 import copy
 
@@ -5,18 +7,36 @@ import torch
 from tqdm import tqdm
 
 from .utils import mean_iou
+from models import DeepLabWrapper
 
 
 class Trainer:
+    """ This class trains DeepLab models given a configuration of hyperparameters 
 
-    def __init__(self, model, dataloaders, criterion, optimizer, num_epochs=25,
-                 is_inception=False):
+    Attributes:
+        deeplab: DeepLabWrapper
+            Model to train
+        dataloaders: torch.utils.data.DataLoader
+            Dataloaders to use for training
+        criterian: torch.nn.CrossEntropyLoss
+            Loss function to use
+        optimizer: torch.optim.Adam
+            Optimizer to use
+        num_epochs: int
+            Number of epochs to train
+        is_inception: bool
+            Use auxiliary outputs and loss during training
+        """
+
+    def __init__(self, deeplab: DeepLabWrapper, dataloaders: torch.utils.data.DataLoader,
+                 criterion: torch.nn.CrossEntropyLoss, optimizer: torch.optim.Adam, num_epochs: int = 25,
+                 is_inception: bool = False):
         """ Initialization method for Trainer base class
 
         Args:
             model: (torchvision.models.segmentation.deeplabv3)
                 the model used in training
-            dataloaders: (torch.utils.data.Dataloader)
+            dataloaders: (torch.utils.data.DataLoader)
                 the dataloader to use
             criterion: (torch.nn.CrossEntropyLoss)
                 the loss function to use
@@ -27,34 +47,35 @@ class Trainer:
             is_inception: (bool)
                 whether or not to use auxiliary outputs in training
         """
-        self.model = model
+        self.deeplab = deeplab
         self.dataloaders = dataloaders
         self.criterion = criterion
         self.optimizer = optimizer
         self.num_epochs = num_epochs
         self.is_inception = is_inception
 
-    def _train(self):
+    def train(self) -> None:
         """ This function is used to train a model
 
         Returns:
             model, val_mean_iou_history
         """
+        self.deeplab.model.train()
         since = time.time()
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         val_mean_iou_history = []
-        best_model_wts = copy.deepcopy(self.model.state_dict())
+        best_model_wts = copy.deepcopy(self.deeplab.model.state_dict())
         best_mean_iou = 0.0
-        self.model.to(device)
+        self.deeplab.model.to(device)
         for epoch in range(self.num_epochs):
-            print('Epoch {}/{}'.format(epoch + 1, self.num_epochs))
+            print(f'Epoch {epoch + 1}/{self.num_epochs}')
             print('-' * 10)
 
             for phase in ['train', 'valid']:
                 if phase == 'train':
-                    self.model.train()
+                    self.deeplab.model.train()
                 else:
-                    self.model.eval()
+                    self.deeplab.model.eval()
 
                 running_loss = 0.0
                 running_mean_iou = 0
@@ -74,12 +95,12 @@ class Trainer:
                     with torch.set_grad_enabled(phase == 'train'):
                         # Get model outputs and calculate loss
                         if self.is_inception and phase == 'train':
-                            outputs = self.model(inputs)
+                            outputs = self.deeplab.model(inputs)
                             loss1 = self.criterion(outputs['out'], label)
                             loss2 = self.criterion(outputs['aux'], label)
                             loss = loss1 + 0.4 * loss2
                         else:
-                            outputs = self.model(inputs)
+                            outputs = self.deeplab.model(inputs)
                             outputs['out'] = outputs['out'].to(device)
                             loss = self.criterion(outputs['out'], label)
                         _, preds = torch.max(outputs['out'], 1)
@@ -99,7 +120,7 @@ class Trainer:
                 # deep copy the model
                 if phase == 'valid' and epoch_mean_iou > best_mean_iou:
                     best_mean_iou = epoch_mean_iou
-                    best_model_wts = copy.deepcopy(self.model.state_dict())
+                    best_model_wts = copy.deepcopy(self.deeplab.model.state_dict())
                 if phase == 'valid':
                     val_mean_iou_history.append(epoch_mean_iou)
 
@@ -110,5 +131,5 @@ class Trainer:
         print('Best val mean IoU: {:4f}'.format(best_mean_iou))
 
         # load best model weights
-        self.model.load_state_dict(best_model_wts)
-        return self.model, val_mean_iou_history
+        self.deeplab.model.load_state_dict(best_model_wts)
+        return self.deeplab, val_mean_iou_history

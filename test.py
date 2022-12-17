@@ -1,12 +1,13 @@
+""" Runs inference on single image inputs """
+
 import os.path as op
 
-import torch
 import numpy as np
 from PIL import Image
 import yaml
 
-from utils import (display_example_pair, run_inference, vis_segmentation,
-                   vis_grid_4x3)
+from models import DeepLabWrapper
+from utils import display_example_pair, vis_segmentation, vis_grid_4x3
 
 
 if __name__ == '__main__':
@@ -21,11 +22,10 @@ if __name__ == '__main__':
     image_display = np.array(example_image)
     mask_display = np.array(example_mask.convert('RGB'))
     display_example_pair(image_display, mask_display)
+    w, h, *_ = example_image.size
+    model = DeepLabWrapper(model_path=config['LOAD_MODEL_PATH'], input_shape=(w,h))
 
-    model = torch.load(config['LOAD_MODEL_PATH'])
-    model.eval()
-
-    predicted_masks = run_inference(model, example_image)
+    predicted_masks = model.process(example_image)
 
     vis_segmentation(example_image, np.array(predicted_masks))
     vis_grid_4x3(model, config['DATA_PATH'])

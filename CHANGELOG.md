@@ -1,5 +1,10 @@
 # CHANGELOG for Semantic-Segmentation
 
+### v3.0.0 - (Nate Haddad, 12/17/2022)
+* Add `process_video.py` script to process video data
+* Refactor models into a `DeepLabWrapper` class
+* Update scripts and files
+
 ### v2.0.0 - (Nate Haddad, 5/7/2022)
 * Switch to yaml configuration files
 * Create base `Trainer` class for future use in different training setups

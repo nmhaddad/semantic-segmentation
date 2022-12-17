@@ -1,3 +1,5 @@
+""" Utility file containing a variety of helper functions"""
+
 import glob
 import os.path as op
 
@@ -7,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from PIL import Image
+import cv2
 
 
 def freeze_layers(model, start: int, stop: int) -> None:
@@ -163,6 +166,31 @@ def vis_segmentation(image: np.ndarray, seg_map: np.ndarray) -> None:
     plt.show()
 
 
+def draw_segmentation(image: np.ndarray, seg_map: np.ndarray) -> np.ndarray:
+    """ Visualizes input image overlayed with segmentation map
+
+    Args:
+        image: (np.ndarray)
+            the rgb image
+        seg_map: (np.ndarray)
+            the mask to overlay
+
+    Returns:
+        overlay: (np.ndarray)
+            input image overlayed with segmentation map
+    """
+    # label_names = np.asarray([
+    #     'non-traversable', 'rough trail', 'smooth trail', 'traversable grass',
+    #     'low vegetation', 'obstacle', 'high vegetation', 'sky'
+    # ])
+
+    # full_label_map = np.arange(len(label_names)).reshape(len(label_names), 1)
+    # full_color_map = label_to_color_image(full_label_map)
+    seg_image = label_to_color_image(seg_map).astype(np.uint8)
+    overlay = cv2.addWeighted(image, 0.5, seg_image, 0.5, 0)
+    return overlay
+
+
 def display_example_pair(image: np.ndarray, mask: np.ndarray) -> None:
     """ Visualizes input image and segmentation map. Used for visualizations.
 
@@ -261,4 +289,22 @@ def run_inference(model, image):
     with torch.no_grad():
         output = model(input_batch)['out'][0]
     output_predictions = output.argmax(0)
+    if isinstance(image, np.ndarray):
+        return Image.fromarray(output_predictions.byte().cpu().numpy()).resize((image.shape[1], image.shape[0]))
     return Image.fromarray(output_predictions.byte().cpu().numpy()).resize(image.size)
+
+
+def save_video(frames: list, outfile_path: str) -> None:
+    """ Saves a list of frames to a video file.
+
+    Args:
+        frames: list
+            List of frames to process into a video
+        outfile_path: str
+            Path to write the video to
+    """
+    h, w, *_ = frames[0].shape
+    outfile = cv2.VideoWriter(outfile_path, -1, 30, (w, h))
+    for frame in frames:
+        outfile.write(frame)
+    outfile.release()

@@ -1,3 +1,5 @@
+""" YamahaCMU Dataloaders"""
+
 import glob
 from typing import Any, Callable, Optional
 
@@ -13,7 +15,6 @@ class YamahaCMUDataset(VisionDataset):
     """ A class that represents the Yamaha-CMU Off-Road dataset
 
     Attributes:
-
         root: (str)
             the root directory
         transforms: (Optional[Callable])
@@ -76,7 +77,7 @@ class YamahaCMUDataset(VisionDataset):
         class_colors = np.unique(mask)
         if self.resize:
             mask = cv2.resize(mask,
-                              dsize=(self.image_height, self.image_width),
+                              dsize=(self.image_width, self.image_height),
                               interpolation=cv2.INTER_CUBIC)
         # remove void class (atv)
         if 0 in class_colors:
@@ -92,8 +93,7 @@ class YamahaCMUDataset(VisionDataset):
         return sample
 
 
-def get_dataloader(data_dir: str, batch_size: int=2,
-                   resize_shape: tuple=None) -> torch.utils.data.DataLoader:
+def get_dataloader(data_dir: str, batch_size: int=2, resize_shape: tuple=None) -> torch.utils.data.DataLoader:
     """ Creates a dataloader for the given dataset
 
     Args:
@@ -107,14 +107,16 @@ def get_dataloader(data_dir: str, batch_size: int=2,
     """
 
     if resize_shape:
-        preprocess = transforms.Compose([transforms.ToTensor(),
-                                         transforms.Resize(resize_shape),
-                                         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-                                         ])
+        preprocess = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Resize(resize_shape),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
     else:
-        preprocess = transforms.Compose([transforms.ToTensor(),
-                                         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-                                         ])
+        preprocess = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
 
     image_datasets = {
         x: YamahaCMUDataset(data_dir + x, resize_shape, transforms=preprocess) for x in ['train', 'valid']
