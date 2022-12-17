@@ -40,6 +40,8 @@ Run `python train.py` to run a standalone training session.
 
 Run `python test.py` to run a standalone inference session on single images.
 
+Run `python process_video.py` to run a standalone inference session on videos.
+
 ## References:
 
 [1] Chen, Liang-Chieh, Zhu, Yukun, Papandreou, George, Schroff, Florian, and Adam, Hartwig. "Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation.” Computer Vision – ECCV2018 (2018): 833-51. Web.  

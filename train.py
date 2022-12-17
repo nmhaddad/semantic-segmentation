@@ -1,10 +1,11 @@
+""" Trains a DeepLabv3 model from a configuration file """
+
 import os
 
 import torch
-from torchvision import models
-from torchvision.models.segmentation.deeplabv3 import DeepLabHead
 import yaml
 
+from models import DeepLabWrapper
 from utils import get_dataloader, Trainer
 
 
@@ -14,47 +15,24 @@ if __name__ == '__main__':
         config = yaml.safe_load(f)
 
     # create an output directory for the model if one doesn't exist
-    if not os.path.exists('models'):
-        os.makedirs('models')
+    os.makedirs('runs', exist_ok=True)
 
-    # load data into dataloaders
+    # create dataloaders
     dataloaders = get_dataloader(config['DATA_PATH'],
                                  batch_size=config['BATCH_SIZE'],
                                  resize_shape=(config['IMG_HEIGHT'], config['IMG_WIDTH']))
 
     # create the model
-    if config['BACKBONE'] == 'resnet101':
-        model = models.segmentation.deeplabv3_resnet101(pretrained=True,
-                                                        progress=True,
-                                                        aux_loss=True)
-        model.classifier = DeepLabHead(2048, config['NUM_MASK_CHANNELS'])
-    elif config['BACKBONE'] == 'resnet50':
-        model = models.segmentation.deeplabv3_resnet50(pretrained=True,
-                                                        progress=True,
-                                                        aux_loss=True)
-        model.classifier = DeepLabHead(2048, config['NUM_MASK_CHANNELS'])
-    elif config['BACKBONE'] == 'mobilenetv3large':
-        model = models.segmentation.deeplabv3_mobilenet_v3_large(pretrained=True,
-                                                                progress=True,
-                                                                aux_loss=True)
-        model.classifier = DeepLabHead(960, config['NUM_MASK_CHANNELS'])
-    else:
-        print('Unknown backbone selected in configuration. Please select from RESNET50, RESNET101, or MOBILENETV3LARGE')
-        raise ValueError
-
-    model.train()
-
-    criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    model = DeepLabWrapper(backbone=config['BACKBONE'], num_mask_channels=config['NUM_MASK_CHANNELS'])
 
     # train the model
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters, lr=1e-4)
     trainer = Trainer(model, dataloaders, criterion, optimizer,
                       num_epochs=config['NUM_EPOCHS'],
                       is_inception=config['IS_INCEPTION'])
-    trainer._train()
+    trainer.train()
 
     # save the model
-    model_path = config.get('SAVE_MODEL_PATH',
-                            'models/{}_v1.{}.pth'.format(config['BACKBONE'],
-                                                         config['NUM_EPOCHS']))
-    torch.save(model, model_path)
+    model_path = config.get('SAVE_MODEL_PATH', f'models/{config["BACKBONE"]}_v1.{config["NUM_EPOCHS"]}.pth')
+    model.save_model(model_path)

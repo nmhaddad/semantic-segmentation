@@ -1,0 +1,19 @@
+# Paths
+DATA_PATH: data/offroad.mp4
+SAVE_MODEL_PATH: runs/model_v0.1.pt # Comment this out to autoname models
+LOAD_MODEL_PATH: runs/model_v0.1.pt
+
+# Image resize variables
+IMG_HEIGHT: 720
+IMG_WIDTH: 1080
+
+# Hyperparameters
+NUM_EPOCHS: 50
+NUM_MASK_CHANNELS: 8
+BATCH_SIZE: 1
+LEARNING_RATE: 1e-4
+IS_INCEPTION: true
+BACKBONE: mobilenetv3large # mobilenetv3large, resnet50, resnet101
+
+# Inference Parameters
+SAVE_VIDEO: output.mp4
