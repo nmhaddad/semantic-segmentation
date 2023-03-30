@@ -30,6 +30,10 @@ The simpliest way to get this repo up and running is to use our anaconda `enviro
 
 To activate, run `conda activate semantic-segmentation`.
 
+## Models
+
+[Pretrained Models](https://drive.google.com/drive/folders/1Gmk8vOF9qBNMg3-TEL-st6KWieB4Af5e?usp=sharing)
+
 ## Running:
 
 You can configure your training environment with the `config/config.yaml` file. This YAML file includes a variety of hyperparameters and paths for training and testing models. It's meant to simplify experimentation.
