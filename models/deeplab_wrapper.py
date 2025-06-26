@@ -1,15 +1,15 @@
-""" Wrapper for torchvision DeepLabv3 models """
+"""Wrapper for torchvision DeepLabv3 models"""
 
 import numpy as np
 import pytorch_lightning as pl
-from torchvision import models, transforms
-from torchvision.models.segmentation.deeplabv3 import DeepLabHead
 import torch
 from PIL import Image
+from torchvision import models, transforms
+from torchvision.models.segmentation.deeplabv3 import DeepLabHead
 
 
 class DeepLabWrapper(pl.LightningModule):
-    """ Wrapper used to add additional features and methods to torchvision DeepLabv3 models
+    """Wrapper used to add additional features and methods to torchvision DeepLabv3 models
 
     Attributes:
         model: torchvision.models.segmentation.DeepLabv3
@@ -31,8 +31,17 @@ class DeepLabWrapper(pl.LightningModule):
             model parameters
     """
 
-    def __init__(self, backbone=None, num_mask_channels=None, input_shape=None, model_path=None, pretrained: bool=True, progress: bool=True, aux_loss: bool=True):
-        """ Initializes a DeepLabWrapper object
+    def __init__(
+        self,
+        backbone=None,
+        num_mask_channels=None,
+        input_shape=None,
+        model_path=None,
+        pretrained: bool = True,
+        progress: bool = True,
+        aux_loss: bool = True,
+    ):
+        """Initializes a DeepLabWrapper object
 
         Args:
             backbone: str, optional
@@ -71,12 +80,11 @@ class DeepLabWrapper(pl.LightningModule):
         self.parameters = self.model.parameters()
 
         if self.cuda:
-            self.model.to('cuda')
-
+            self.model.to("cuda")
 
     @property
     def input_width(self) -> int:
-        """ Gets input width
+        """Gets input width
 
         Returns:
             width: (int)
@@ -86,7 +94,7 @@ class DeepLabWrapper(pl.LightningModule):
 
     @property
     def input_height(self) -> int:
-        """ Gets input height
+        """Gets input height
 
         Returns:
             height: (int)
@@ -95,7 +103,7 @@ class DeepLabWrapper(pl.LightningModule):
         return self.input_shape[1]
 
     def load_model(self, eval: bool = True) -> None:
-        """ Loads a model from a file
+        """Loads a model from a file
 
         Args:
             eval: (bool, optional)
@@ -107,13 +115,15 @@ class DeepLabWrapper(pl.LightningModule):
         self.model = torch.load(self.model_path, weights_only=False)
         if eval:
             self.model.eval()
-        self.preprocess_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
+        self.preprocess_transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ]
+        )
 
     def save_model(self, model_path: str) -> None:
-        """ Saves model to the given model path
+        """Saves model to the given model path
 
         Args:
             model_path: (str)
@@ -125,7 +135,7 @@ class DeepLabWrapper(pl.LightningModule):
         torch.save(self.model, model_path)
 
     def initialize_model(self, pretrained: bool, progress: bool, aux_loss: bool):
-        """ Initializes a DeepLabv3 model from the torchvision package
+        """Initializes a DeepLabv3 model from the torchvision package
 
         Args:
             pretrained: bool
@@ -139,34 +149,43 @@ class DeepLabWrapper(pl.LightningModule):
             None
         """
         match self.backbone.lower():
-            case 'resnet101':
-                self.model = models.segmentation.deeplabv3_resnet101(pretrained=pretrained, progress=progress, aux_loss=aux_loss)
+            case "resnet101":
+                self.model = models.segmentation.deeplabv3_resnet101(
+                    pretrained=pretrained, progress=progress, aux_loss=aux_loss
+                )
                 self.model.classifier = DeepLabHead(2048, self.num_mask_channels)
-            case 'resnet50':
-                self.model = models.segmentation.deeplabv3_resnet50(pretrained=pretrained, progress=progress, aux_loss=aux_loss)
+            case "resnet50":
+                self.model = models.segmentation.deeplabv3_resnet50(
+                    pretrained=pretrained, progress=progress, aux_loss=aux_loss
+                )
                 self.model.classifier = DeepLabHead(2048, self.num_mask_channels)
-            case 'mobilenetv3large':
-                self.model = models.segmentation.deeplabv3_mobilenet_v3_large(pretrained=pretrained, progress=progress, aux_loss=aux_loss)
+            case "mobilenetv3large":
+                self.model = models.segmentation.deeplabv3_mobilenet_v3_large(
+                    pretrained=pretrained, progress=progress, aux_loss=aux_loss
+                )
                 self.model.classifier = DeepLabHead(960, self.num_mask_channels)
             case _:
-                raise ValueError('Unknown backbone selected in configuration. Please select from RESNET50, RESNET101, or MOBILENETV3LARGE')
+                raise ValueError(
+                    "Unknown backbone selected in configuration. Please select from RESNET50, RESNET101, or MOBILENETV3LARGE"
+                )
 
     def preprocess(self, image: np.ndarray | Image.Image) -> torch.Tensor:
-        """ Preprocesses input into format required for processing """
+        """Preprocesses input into format required for processing"""
         # apply the same transforms that were applied to input images when training the model
         input_tensor: torch.Tensor = self.preprocess_transform(image)
         # put the image in a batch (as expected by the model)
         input_batch: torch.Tensor = input_tensor.unsqueeze(0)
         # move the input and model to GPU for speed if available
         if self.cuda:
-            input_batch = input_batch.to('cuda')
+            input_batch = input_batch.to("cuda")
         return input_batch
 
     def forward(self, image: np.ndarray | Image.Image) -> Image.Image:
-        """ Processes input through a DeepLabv3 model """
+        """Processes input through a DeepLabv3 model"""
         input_batch = self.preprocess(image)
         with torch.no_grad():
-            output = self.model(input_batch)['out'][0]
+            output: torch.Tensor = self.model(input_batch)["out"][0]
+        breakpoint()
         output_predictions = output.argmax(0)
         # TODO only numpy arrays!
         return Image.fromarray(output_predictions.byte().cpu().numpy()).resize((self.input_width, self.input_height))

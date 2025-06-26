@@ -1,17 +1,18 @@
-""" Class for training DeepLab models """
+"""Class for training DeepLab models"""
 
-import time
 import copy
+import time
 
 import torch
 from tqdm import tqdm
 
-from .utils import mean_iou
 from models import DeepLabWrapper
+
+from .utils import mean_iou
 
 
 class Trainer:
-    """ This class trains DeepLab models given a configuration of hyperparameters 
+    """This class trains DeepLab models given a configuration of hyperparameters
 
     Attributes:
         deeplab: DeepLabWrapper
@@ -26,12 +27,18 @@ class Trainer:
             Number of epochs to train
         is_inception: bool
             Use auxiliary outputs and loss during training
-        """
+    """
 
-    def __init__(self, deeplab: DeepLabWrapper, dataloaders: torch.utils.data.DataLoader,
-                 criterion: torch.nn.CrossEntropyLoss, optimizer: torch.optim.Adam, num_epochs: int = 25,
-                 is_inception: bool = False):
-        """ Initialization method for Trainer base class
+    def __init__(
+        self,
+        deeplab: DeepLabWrapper,
+        dataloaders: torch.utils.data.DataLoader,
+        criterion: torch.nn.CrossEntropyLoss,
+        optimizer: torch.optim.Adam,
+        num_epochs: int = 25,
+        is_inception: bool = False,
+    ):
+        """Initialization method for Trainer base class
 
         Args:
             model: (torchvision.models.segmentation.deeplabv3)
@@ -55,7 +62,7 @@ class Trainer:
         self.is_inception = is_inception
 
     def train(self) -> None:
-        """ This function is used to train a model
+        """This function is used to train a model
 
         Returns:
             model, val_mean_iou_history
@@ -68,11 +75,11 @@ class Trainer:
         best_mean_iou = 0.0
         self.deeplab.model.to(device)
         for epoch in range(self.num_epochs):
-            print(f'Epoch {epoch + 1}/{self.num_epochs}')
-            print('-' * 10)
+            print(f"Epoch {epoch + 1}/{self.num_epochs}")
+            print("-" * 10)
 
-            for phase in ['train', 'valid']:
-                if phase == 'train':
+            for phase in ["train", "valid"]:
+                if phase == "train":
                     self.deeplab.model.train()
                 else:
                     self.deeplab.model.eval()
@@ -82,9 +89,8 @@ class Trainer:
 
                 # Iterate over data.
                 for sample in tqdm(iter(self.dataloaders[phase])):
-
-                    inputs = sample['image'].to(device)
-                    labels = sample['mask'].to(device)
+                    inputs = sample["image"].to(device)
+                    labels = sample["mask"].to(device)
 
                     label = torch.argmax(labels, dim=1)
 
@@ -92,43 +98,43 @@ class Trainer:
 
                     # forward
                     # track history if only in train
-                    with torch.set_grad_enabled(phase == 'train'):
+                    with torch.set_grad_enabled(phase == "train"):
                         # Get model outputs and calculate loss
-                        if self.is_inception and phase == 'train':
+                        if self.is_inception and phase == "train":
                             outputs = self.deeplab.model(inputs)
-                            loss1 = self.criterion(outputs['out'], label)
-                            loss2 = self.criterion(outputs['aux'], label)
+                            loss1 = self.criterion(outputs["out"], label)
+                            loss2 = self.criterion(outputs["aux"], label)
                             loss = loss1 + 0.4 * loss2
                         else:
                             outputs = self.deeplab.model(inputs)
-                            outputs['out'] = outputs['out'].to(device)
-                            loss = self.criterion(outputs['out'], label)
-                        _, preds = torch.max(outputs['out'], 1)
+                            outputs["out"] = outputs["out"].to(device)
+                            loss = self.criterion(outputs["out"], label)
+                        _, preds = torch.max(outputs["out"], 1)
 
                         # backward + optimize only if in training phase
-                        if phase == 'train':
+                        if phase == "train":
                             loss.backward()
                             self.optimizer.step()
 
                     # statistics
                     running_loss += loss.item() * inputs.size(0)
-                    running_mean_iou += mean_iou(torch.argmax(outputs['out'], 1), label).item()
+                    running_mean_iou += mean_iou(torch.argmax(outputs["out"], 1), label).item()
 
                 epoch_loss = running_loss / len(self.dataloaders[phase].dataset)
                 epoch_mean_iou = running_mean_iou / len(self.dataloaders[phase])
-                print('{} Loss: {:.4f} mIoU: {:.4f}'.format(phase, epoch_loss, epoch_mean_iou))
+                print("{} Loss: {:.4f} mIoU: {:.4f}".format(phase, epoch_loss, epoch_mean_iou))
                 # deep copy the model
-                if phase == 'valid' and epoch_mean_iou > best_mean_iou:
+                if phase == "valid" and epoch_mean_iou > best_mean_iou:
                     best_mean_iou = epoch_mean_iou
                     best_model_wts = copy.deepcopy(self.deeplab.model.state_dict())
-                if phase == 'valid':
+                if phase == "valid":
                     val_mean_iou_history.append(epoch_mean_iou)
 
             print()
 
         time_elapsed = time.time() - since
-        print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-        print('Best val mean IoU: {:4f}'.format(best_mean_iou))
+        print("Training complete in {:.0f}m {:.0f}s".format(time_elapsed // 60, time_elapsed % 60))
+        print("Best val mean IoU: {:4f}".format(best_mean_iou))
 
         # load best model weights
         self.deeplab.model.load_state_dict(best_model_wts)

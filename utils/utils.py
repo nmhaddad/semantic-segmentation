@@ -1,19 +1,18 @@
-""" Utility file containing a variety of helper functions"""
+"""Utility file containing a variety of helper functions"""
 
 import glob
 import os.path as op
 
-import torch
-from torchvision import transforms
-import numpy as np
+import cv2
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from matplotlib import gridspec
 from PIL import Image
-import cv2
 
 
 def freeze_layers(model, start: int, stop: int) -> None:
-    """ Freezes the layers of a nn from start to stop indices
+    """Freezes the layers of a nn from start to stop indices
 
     Args:
         model: (torchvision.models)
@@ -27,7 +26,7 @@ def freeze_layers(model, start: int, stop: int) -> None:
         None
     """
     for name, child in model.named_children():
-        if name == 'backbone':
+        if name == "backbone":
             for i in range(start, stop):
                 layer = child[str(i)].parameters()
                 for parameter in layer:
@@ -35,7 +34,7 @@ def freeze_layers(model, start: int, stop: int) -> None:
 
 
 def mean_iou(outputs: torch.Tensor, labels: torch.Tensor) -> float:
-    """ Calculates the mean IoU (Jaccard index) between
+    """Calculates the mean IoU (Jaccard index) between
         two tensors. Shape expected to be same.
 
     Args:
@@ -56,7 +55,7 @@ def mean_iou(outputs: torch.Tensor, labels: torch.Tensor) -> float:
 
 
 def imshow(image: Image) -> None:
-    """ Displays an image
+    """Displays an image
 
     Args:
         image: (Image) the input image to display
@@ -69,7 +68,7 @@ def imshow(image: Image) -> None:
 
 
 def label_to_color_image(label: np.ndarray) -> np.ndarray:
-    """ Adds color defined by the dataset colormap to the label.
+    """Adds color defined by the dataset colormap to the label.
         From https://github.com/tensorflow/models/tree/master/research/deeplab
 
     Args:
@@ -86,18 +85,18 @@ def label_to_color_image(label: np.ndarray) -> np.ndarray:
             map maximum entry.
     """
     if len(label.shape) != 2:
-        raise ValueError('Expect 2-D input label')
+        raise ValueError("Expect 2-D input label")
 
     colormap = create_cmu_yamaha_offroad_label_colormap()
 
     if np.max(label) >= len(colormap):
-        raise ValueError('label value too large.')
+        raise ValueError("label value too large.")
 
     return colormap[label]
 
 
 def create_cmu_yamaha_offroad_label_colormap() -> np.ndarray:
-    """ Creates a label colormap used in CMU Yamaha Offroad
+    """Creates a label colormap used in CMU Yamaha Offroad
         dataset segmentation dataset.
 
     Returns:
@@ -115,7 +114,7 @@ def create_cmu_yamaha_offroad_label_colormap() -> np.ndarray:
 
 
 def vis_segmentation(image: np.ndarray, seg_map: np.ndarray) -> None:
-    """ Visualizes input image, segmentation map and overlay view
+    """Visualizes input image, segmentation map and overlay view
         From https://github.com/tensorflow/models/tree/master/research/deeplab
 
     Args:
@@ -127,10 +126,18 @@ def vis_segmentation(image: np.ndarray, seg_map: np.ndarray) -> None:
     Returns:
         None
     """
-    label_names = np.asarray([
-        'non-traversable', 'rough trail', 'smooth trail', 'traversable grass',
-        'low vegetation', 'obstacle', 'high vegetation', 'sky'
-    ])
+    label_names = np.asarray(
+        [
+            "non-traversable",
+            "rough trail",
+            "smooth trail",
+            "traversable grass",
+            "low vegetation",
+            "obstacle",
+            "high vegetation",
+            "sky",
+        ]
+    )
 
     full_label_map = np.arange(len(label_names)).reshape(len(label_names), 1)
     full_color_map = label_to_color_image(full_label_map)
@@ -140,34 +147,34 @@ def vis_segmentation(image: np.ndarray, seg_map: np.ndarray) -> None:
 
     plt.subplot(grid_spec[0])
     plt.imshow(image)
-    plt.axis('off')
-    plt.title('input image')
+    plt.axis("off")
+    plt.title("input image")
 
     plt.subplot(grid_spec[1])
     seg_image = label_to_color_image(seg_map).astype(np.uint8)
     plt.imshow(seg_image)
-    plt.axis('off')
-    plt.title('segmentation map')
+    plt.axis("off")
+    plt.title("segmentation map")
 
     plt.subplot(grid_spec[2])
     plt.imshow(image)
     plt.imshow(seg_image, alpha=0.5)
-    plt.axis('off')
-    plt.title('segmentation overlay')
+    plt.axis("off")
+    plt.title("segmentation overlay")
 
     unique_labels = np.unique(seg_map)
     ax = plt.subplot(grid_spec[3])
-    plt.imshow(full_color_map[unique_labels].astype(np.uint8), interpolation='nearest')
+    plt.imshow(full_color_map[unique_labels].astype(np.uint8), interpolation="nearest")
     ax.yaxis.tick_right()
     plt.yticks(range(len(unique_labels)), label_names[unique_labels])
     plt.xticks([], [])
     ax.tick_params(width=0.0)
-    plt.grid('off')
-    plt.savefig('segmentation_visualization.png', bbox_inches='tight', pad_inches=0.1)
+    plt.grid("off")
+    plt.savefig("segmentation_visualization.png", bbox_inches="tight", pad_inches=0.1)
 
 
 def draw_segmentation(image: np.ndarray, seg_map: np.ndarray) -> np.ndarray:
-    """ Visualizes input image overlayed with segmentation map
+    """Visualizes input image overlayed with segmentation map
 
     Args:
         image: (np.ndarray)
@@ -192,7 +199,7 @@ def draw_segmentation(image: np.ndarray, seg_map: np.ndarray) -> np.ndarray:
 
 
 def display_example_pair(image: np.ndarray, mask: np.ndarray) -> None:
-    """ Visualizes input image and segmentation map. Used for visualizations.
+    """Visualizes input image and segmentation map. Used for visualizations.
 
     Args:
         image: (np.ndarray) the rgb image
@@ -203,15 +210,15 @@ def display_example_pair(image: np.ndarray, mask: np.ndarray) -> None:
     """
     _, ax = plt.subplots(1, 2, figsize=(15, 15))
     ax[0].imshow(image)
-    ax[0].axis('off')
-    ax[0].set_title('Original Image')
+    ax[0].axis("off")
+    ax[0].set_title("Original Image")
     ax[1].imshow(mask)
-    ax[1].axis('off')
-    ax[1].set_title('Mask')
+    ax[1].axis("off")
+    ax[1].set_title("Mask")
 
 
 def vis_grid_4x3(model, data_path: str) -> None:
-    """ Visualizes a grid of original, mask, and predicted mask images.
+    """Visualizes a grid of original, mask, and predicted mask images.
         Used to visualize the results of multiple images after running
         inference.
 
@@ -223,10 +230,12 @@ def vis_grid_4x3(model, data_path: str) -> None:
         None
     """
     images = []
-    pair_directories = [op.join(data_path, 'train/iid000183'),
-                        op.join(data_path, 'train/iid000657'),
-                        op.join(data_path, 'train/iid000499'),
-                        op.join(data_path, 'train/iid001092')]
+    pair_directories = [
+        op.join(data_path, "train/iid000183"),
+        op.join(data_path, "train/iid000657"),
+        op.join(data_path, "train/iid000499"),
+        op.join(data_path, "train/iid001092"),
+    ]
     brown = [139, 69, 19]
     dark_green = [0, 100, 0]
     forest_green = [34, 139, 34]
@@ -235,35 +244,34 @@ def vis_grid_4x3(model, data_path: str) -> None:
     red = [255, 0, 0]
     green = [0, 255, 0]
     white = [255, 255, 255]
-    colors = torch.as_tensor([white, green, brown, gray, forest_green, red,
-                              dark_green, sky])
+    colors = torch.as_tensor([white, green, brown, gray, forest_green, red, dark_green, sky])
     colors = (colors).numpy().astype("uint8")
     for i in range(4):
-        image_mask_pair = glob.glob(pair_directories[i] + '/*')
+        image_mask_pair = glob.glob(pair_directories[i] + "/*")
         path1, path2 = image_mask_pair
         mask = Image.open(path1)
-        mask = np.array(mask.convert('RGB'))
+        mask = np.array(mask.convert("RGB"))
         image = Image.open(path2)
         seg_map = model(image)
         seg_map.putpalette(colors)
-        seg_map = seg_map.convert('RGB')
+        seg_map = seg_map.convert("RGB")
         seg_map = np.array(seg_map)
         images = images + [image, mask, seg_map]
     plt.figure(figsize=(10, 10))
-    col = ['Original', 'Mask', 'Ours']
+    col = ["Original", "Mask", "Ours"]
     for i in range(len(images)):
-        ax = plt.subplot(4, 3, i+1)
+        ax = plt.subplot(4, 3, i + 1)
         if i < 3:
             ax.set_title(col[i])
         plt.imshow(images[i])
         plt.axis("off")
-    plt.subplots_adjust(wspace=.01, hspace=-0.6)
+    plt.subplots_adjust(wspace=0.01, hspace=-0.6)
     # plt.savefig('sample.png', bbox_inches=0, transparent="True",
     #             pad_inches=0)
 
 
 def save_video(frames: list, outfile_path: str) -> None:
-    """ Saves a list of frames to a video file.
+    """Saves a list of frames to a video file.
 
     Args:
         frames: list

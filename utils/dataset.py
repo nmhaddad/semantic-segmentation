@@ -1,18 +1,18 @@
-""" YamahaCMU Dataloaders"""
+"""YamahaCMU Dataloaders"""
 
 import glob
 from typing import Any, Callable, Optional
 
+import cv2
+import numpy as np
 import torch
+from PIL import Image
 from torchvision import transforms
 from torchvision.datasets.vision import VisionDataset
-import numpy as np
-import cv2
-from PIL import Image
 
 
 class YamahaCMUDataset(VisionDataset):
-    """ A class that represents the Yamaha-CMU Off-Road dataset
+    """A class that represents the Yamaha-CMU Off-Road dataset
 
     Attributes:
         root: (str)
@@ -27,9 +27,8 @@ class YamahaCMUDataset(VisionDataset):
             returns the item at the given index of this dataset
     """
 
-    def __init__(self, root: str, resize_shape: tuple,
-                 transforms: Optional[Callable] = None) -> None:
-        """ Initializes a YamahaCMUDataset object
+    def __init__(self, root: str, resize_shape: tuple, transforms: Optional[Callable] = None) -> None:
+        """Initializes a YamahaCMUDataset object
 
         Args:
             root: (str)
@@ -40,10 +39,10 @@ class YamahaCMUDataset(VisionDataset):
         super().__init__(root, transforms)
         image_paths = []
         mask_paths = []
-        image_mask_pairs = glob.glob(root + '/*/')
+        image_mask_pairs = glob.glob(root + "/*/")
         for image_mask in image_mask_pairs:
-            image_paths.append(glob.glob(image_mask + '*.jpg')[0])
-            mask_paths.append(glob.glob(image_mask + '*.png')[0])
+            image_paths.append(glob.glob(image_mask + "*.jpg")[0])
+            mask_paths.append(glob.glob(image_mask + "*.png")[0])
         self.image_names = image_paths
         self.mask_names = mask_paths
 
@@ -55,11 +54,11 @@ class YamahaCMUDataset(VisionDataset):
             self.resize = False
 
     def __len__(self) -> int:
-        """ Returns the length of the dataset """
+        """Returns the length of the dataset"""
         return len(self.image_names)
 
     def __getitem__(self, index: int) -> Any:
-        """ Returns the item at the given index of this dataset
+        """Returns the item at the given index of this dataset
 
         Args:
             index: (int)
@@ -76,9 +75,7 @@ class YamahaCMUDataset(VisionDataset):
         mask = np.array(mask)
         class_colors = np.unique(mask)
         if self.resize:
-            mask = cv2.resize(mask,
-                              dsize=(self.image_width, self.image_height),
-                              interpolation=cv2.INTER_CUBIC)
+            mask = cv2.resize(mask, dsize=(self.image_width, self.image_height), interpolation=cv2.INTER_CUBIC)
         # remove void class (atv)
         if 0 in class_colors:
             class_colors = class_colors[1:]
@@ -89,12 +86,12 @@ class YamahaCMUDataset(VisionDataset):
         sample = {"image": image, "mask": masks}
         if self.transforms:
             sample["image"] = self.transforms(sample["image"])
-            sample['mask'] = torch.as_tensor(sample['mask'], dtype=torch.uint8)
+            sample["mask"] = torch.as_tensor(sample["mask"], dtype=torch.uint8)
         return sample
 
 
-def get_dataloader(data_dir: str, batch_size: int=2, resize_shape: tuple=None) -> torch.utils.data.DataLoader:
-    """ Creates a dataloader for the given dataset
+def get_dataloader(data_dir: str, batch_size: int = 2, resize_shape: tuple = None) -> torch.utils.data.DataLoader:
+    """Creates a dataloader for the given dataset
 
     Args:
         data_dir: (str)
@@ -107,23 +104,27 @@ def get_dataloader(data_dir: str, batch_size: int=2, resize_shape: tuple=None) -
     """
 
     if resize_shape:
-        preprocess = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Resize(resize_shape),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
+        preprocess = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Resize(resize_shape),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ]
+        )
     else:
-        preprocess = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
+        preprocess = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ]
+        )
 
     image_datasets = {
-        x: YamahaCMUDataset(data_dir + x, resize_shape, transforms=preprocess) for x in ['train', 'valid']
+        x: YamahaCMUDataset(data_dir + x, resize_shape, transforms=preprocess) for x in ["train", "valid"]
     }
 
     dataloaders = {
         x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, drop_last=True)
-        for x in ['train', 'valid']
+        for x in ["train", "valid"]
     }
     return dataloaders
