@@ -23,9 +23,13 @@ if __name__ == '__main__':
     mask_display = np.array(example_mask.convert('RGB'))
     display_example_pair(image_display, mask_display)
     w, h, *_ = example_image.size
+
+    import torch
+    print(torch.cuda.is_available())
+
     model = DeepLabWrapper(model_path=config['LOAD_MODEL_PATH'], input_shape=(w,h))
 
-    predicted_masks = model.process(example_image)
+    predicted_masks = model(example_image)
 
     vis_segmentation(example_image, np.array(predicted_masks))
     vis_grid_4x3(model, config['DATA_PATH'])

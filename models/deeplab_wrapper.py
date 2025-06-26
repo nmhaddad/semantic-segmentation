@@ -104,7 +104,7 @@ class DeepLabWrapper(pl.LightningModule):
         Returns:
             None
         """
-        self.model = torch.load(self.model_path)
+        self.model = torch.load(self.model_path, weights_only=False)
         if eval:
             self.model.eval()
         self.preprocess_transform = transforms.Compose([
@@ -138,31 +138,31 @@ class DeepLabWrapper(pl.LightningModule):
         Returns:
             None
         """
-        if self.backbone == 'resnet101':
-            model = models.segmentation.deeplabv3_resnet101(pretrained=pretrained, progress=progress, aux_loss=aux_loss)
-            model.classifier = DeepLabHead(2048, self.num_mask_channels)
-        elif self.backbone == 'resnet50':
-            model = models.segmentation.deeplabv3_resnet50(pretrained=pretrained, progress=progress, aux_loss=aux_loss)
-            model.classifier = DeepLabHead(2048, self.num_mask_channels)
-        elif self.backbone == 'mobilenetv3large':
-            model = models.segmentation.deeplabv3_mobilenet_v3_large(pretrained=pretrained, progress=progress, aux_loss=aux_loss)
-            model.classifier = DeepLabHead(960, self.num_mask_channels)
-        else:
-            raise ValueError('Unknown backbone selected in configuration. Please select from RESNET50, RESNET101, or MOBILENETV3LARGE')
-        self.model = model
+        match self.backbone.lower():
+            case 'resnet101':
+                self.model = models.segmentation.deeplabv3_resnet101(pretrained=pretrained, progress=progress, aux_loss=aux_loss)
+                self.model.classifier = DeepLabHead(2048, self.num_mask_channels)
+            case 'resnet50':
+                self.model = models.segmentation.deeplabv3_resnet50(pretrained=pretrained, progress=progress, aux_loss=aux_loss)
+                self.model.classifier = DeepLabHead(2048, self.num_mask_channels)
+            case 'mobilenetv3large':
+                self.model = models.segmentation.deeplabv3_mobilenet_v3_large(pretrained=pretrained, progress=progress, aux_loss=aux_loss)
+                self.model.classifier = DeepLabHead(960, self.num_mask_channels)
+            case _:
+                raise ValueError('Unknown backbone selected in configuration. Please select from RESNET50, RESNET101, or MOBILENETV3LARGE')
 
-    def preprocess(self, image: np.ndarray) -> np.ndarray:
+    def preprocess(self, image: np.ndarray | Image.Image) -> torch.Tensor:
         """ Preprocesses input into format required for processing """
         # apply the same transforms that were applied to input images when training the model
-        input_tensor = self.preprocess_transform(image)
+        input_tensor: torch.Tensor = self.preprocess_transform(image)
         # put the image in a batch (as expected by the model)
-        input_batch = input_tensor.unsqueeze(0)
+        input_batch: torch.Tensor = input_tensor.unsqueeze(0)
         # move the input and model to GPU for speed if available
         if self.cuda:
             input_batch = input_batch.to('cuda')
         return input_batch
 
-    def process(self, image: np.ndarray) -> np.ndarray:
+    def forward(self, image: np.ndarray | Image.Image) -> Image.Image:
         """ Processes input through a DeepLabv3 model """
         input_batch = self.preprocess(image)
         with torch.no_grad():

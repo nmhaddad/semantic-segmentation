@@ -163,7 +163,7 @@ def vis_segmentation(image: np.ndarray, seg_map: np.ndarray) -> None:
     plt.xticks([], [])
     ax.tick_params(width=0.0)
     plt.grid('off')
-    plt.show()
+    plt.savefig('segmentation_visualization.png', bbox_inches='tight', pad_inches=0.1)
 
 
 def draw_segmentation(image: np.ndarray, seg_map: np.ndarray) -> np.ndarray:
@@ -244,7 +244,7 @@ def vis_grid_4x3(model, data_path: str) -> None:
         mask = Image.open(path1)
         mask = np.array(mask.convert('RGB'))
         image = Image.open(path2)
-        seg_map = run_inference(model, image)
+        seg_map = model(image)
         seg_map.putpalette(colors)
         seg_map = seg_map.convert('RGB')
         seg_map = np.array(seg_map)
@@ -260,38 +260,6 @@ def vis_grid_4x3(model, data_path: str) -> None:
     plt.subplots_adjust(wspace=.01, hspace=-0.6)
     # plt.savefig('sample.png', bbox_inches=0, transparent="True",
     #             pad_inches=0)
-
-
-def run_inference(model, image):
-    """ Runs inference on a single image with the given model
-
-    Args:
-        model: (torchvision.models)
-            the model to use
-        image: (np.ndarray)
-            the image to use
-
-    Returns:
-        (Image) the segmentation map predicted by the model
-    """
-    # apply the same transforms that were applied to input images when training the model
-    preprocess = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
-    input_tensor = preprocess(image)
-    # put the image in a batch (as expected by the model)
-    input_batch = input_tensor.unsqueeze(0)
-    # move the input and model to GPU for speed if available
-    if torch.cuda.is_available():
-        input_batch = input_batch.to('cuda')
-        model.to('cuda')
-    with torch.no_grad():
-        output = model(input_batch)['out'][0]
-    output_predictions = output.argmax(0)
-    if isinstance(image, np.ndarray):
-        return Image.fromarray(output_predictions.byte().cpu().numpy()).resize((image.shape[1], image.shape[0]))
-    return Image.fromarray(output_predictions.byte().cpu().numpy()).resize(image.size)
 
 
 def save_video(frames: list, outfile_path: str) -> None:

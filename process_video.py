@@ -27,7 +27,7 @@ def process_video(model_path: str, data_path: str) -> None:
         ret, frame = video.read()
         if not ret:
             break
-        predicted_masks = model.process(frame)
+        predicted_masks = model(frame)
         overlay = draw_segmentation(frame, np.array(predicted_masks))
         frames.append(overlay)
 
