@@ -1,5 +1,5 @@
 # Semantic segmentation of off-road images using transfer learning and DeepLabv3+
-A transfer learning follow-up using DeepLabV3+ and the Yamaha-CMU Off-Road Dataset
+Fine-tuning codebase for DeepLabV3+ and the Yamaha-CMU Off-Road Dataset
 
 ### Author: Nate Haddad - *nhaddad2112[at]gmail[dot]com*
 
@@ -19,9 +19,9 @@ Non-peer-reviewed report available [here](./media/report.pdf)
 The following instructions will set up the repository for training and inference. It creates a `data` directory, which is used to store training data. Steps 3 and 4 will download and unzip the *[Yamaha-CMU Off-Road Dataset](https://theairlab.org/yamaha-offroad-dataset/)* to the `data` directory.
 
 1. `git clone https://github.com/nmhaddad/semantic-segmentation.git`
-2. `mkdir data && cd data`
-3. `wget https://cmu.box.com/s/3fngoljhcwhqf2z5cbepufh331qtesxt`
-4. `unzip yamaha_v0.zip`
+1. `mkdir data && cd data`
+1. `wget https://cmu.box.com/s/3fngoljhcwhqf2z5cbepufh331qtesxt`
+1. `unzip yamaha_v0.zip`
 
 ### Installing Dependencies with Anaconda
 The simpliest way to get this repo up and running is to use our anaconda `environment.yaml` file:
