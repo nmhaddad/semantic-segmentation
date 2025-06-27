@@ -23,12 +23,10 @@ The following instructions will set up the repository for training and inference
 1. `wget https://cmu.box.com/s/3fngoljhcwhqf2z5cbepufh331qtesxt`
 1. `unzip yamaha_v0.zip`
 
-### Installing Dependencies with Anaconda
-The simpliest way to get this repo up and running is to use our anaconda `environment.yaml` file:
+### Installing Dependencies
+This project was setup and tested using Python 3.12. The simpliest way to get this repo up and running is to use `uv` to create a virtual environment, then install dependencies using the `requirements.txt` file:
 
-`conda create -f environment.yaml`
-
-To activate, run `conda activate semantic-segmentation`.
+`uv pip install -r requirements.txt`
 
 ## Models
 
