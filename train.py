@@ -1,38 +1,46 @@
-""" Trains a DeepLabv3 model from a configuration file """
+"""Trains a DeepLabv3 model from a configuration file"""
 
 import os
+from typing import Any, Dict
 
 import torch
 import yaml
 
+import wandb
 from models import DeepLabWrapper
-from utils import get_dataloader, Trainer
+from utils import Trainer, get_dataloaders
 
+with open("config/config.yaml", "r") as f:
+    config: Dict[str, Any] = yaml.safe_load(f)
 
-if __name__ == '__main__':
+# create an output directory for the model if one doesn't exist
+os.makedirs("runs", exist_ok=True)
 
-    with open('config/config.yaml', 'r') as f:
-        config = yaml.safe_load(f)
+run = wandb.init(
+    entity="nhaddad2112-duckasaurus",
+    project="semantic-segmentation",
+    config={
+        "learning_rate": config.get("LEARNING_RATE", 1e-4),
+        "batch_size": config.get("BATCH_SIZE", 16),
+        "backbone": config.get("BACKBONE", "mobilenetv3large"),
+        "dataset": "Yamaha",
+        "epochs": config.get("NUM_EPOCHS", 25),
+    },
+)
 
-    # create an output directory for the model if one doesn't exist
-    os.makedirs('runs', exist_ok=True)
-
-    # create dataloaders
-    dataloaders = get_dataloader(config['DATA_PATH'],
-                                 batch_size=config['BATCH_SIZE'],
-                                 resize_shape=(config['IMG_HEIGHT'], config['IMG_WIDTH']))
-
-    # create the model
-    model = DeepLabWrapper(backbone=config['BACKBONE'], num_mask_channels=config['NUM_MASK_CHANNELS'])
-
-    # train the model
-    criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters, lr=1e-4)
-    trainer = Trainer(model, dataloaders, criterion, optimizer,
-                      num_epochs=config['NUM_EPOCHS'],
-                      is_inception=config['IS_INCEPTION'])
-    trainer.train()
-
-    # save the model
-    model_path = config.get('SAVE_MODEL_PATH', f'models/{config["BACKBONE"]}_v1.{config["NUM_EPOCHS"]}.pth')
-    model.save_model(model_path)
+dataloaders = get_dataloaders(config["DATA_PATH"], batch_size=config["BATCH_SIZE"])
+model = DeepLabWrapper(backbone=config["BACKBONE"], num_mask_channels=config["NUM_MASK_CHANNELS"])
+class_weights = torch.tensor(config["CLASS_WEIGHTS"])
+class_weights = class_weights.to("cuda")
+criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
+optimizer = torch.optim.AdamW(model.parameters, lr=float(config["LEARNING_RATE"]))
+trainer = Trainer(
+    model,
+    dataloaders,
+    criterion,
+    optimizer,
+    num_epochs=config["NUM_EPOCHS"],
+    logger=run,
+    save_model_path=config.get("SAVE_MODEL_PATH"),
+)
+trainer.train()

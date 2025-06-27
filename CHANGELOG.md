@@ -1,5 +1,8 @@
 # CHANGELOG for Semantic-Segmentation
 
+### v4.0.0 - (Nate Haddad, 6/26/2025)
+- Rewrite of several training and testing pipelines
+
 ### v3.0.1 - (Nate Haddad, 8/26/2024)
 * Add `report.pdf`
 

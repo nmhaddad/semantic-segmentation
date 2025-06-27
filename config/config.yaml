@@ -1,16 +1,13 @@
 # Paths
 DATA_PATH: data/yamaha_v0/
-SAVE_MODEL_PATH: runs/model_v0.1.pt # Comment this out to autoname models
-LOAD_MODEL_PATH: runs/mobilenetv3large_v1.50.pt
+LOAD_MODEL_PATH: runs/mobilenetv3large_v1.10.pt # Comment this out to autoname models
 
-# Image resize variables
-IMG_HEIGHT: 544
-IMG_WIDTH: 1024
 
 # Hyperparameters
-NUM_EPOCHS: 10
-NUM_MASK_CHANNELS: 8
-BATCH_SIZE: 8
-LEARNING_RATE: 1e-4
-IS_INCEPTION: true
+CLASS_WEIGHTS: [3.8838, 0.7387, 0.8316, 0.7312, 60.3802, 12.8362, 1.7804, 0.3081, 1.0905]
+CROP_SIZE: 513
+NUM_EPOCHS: 50
+NUM_MASK_CHANNELS: 9
+BATCH_SIZE: 16
+LEARNING_RATE: 1e-5
 BACKBONE: mobilenetv3large # mobilenetv3large, resnet50, resnet101
