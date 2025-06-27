@@ -2,29 +2,18 @@
 
 import copy
 import time
+from typing import Tuple
 
 import torch
+from torch.amp import GradScaler, autocast
+from torchmetrics.segmentation import MeanIoU
 from tqdm import tqdm
 
 from models import DeepLabWrapper
 
 
 class Trainer:
-    """This class trains DeepLab models given a configuration of hyperparameters
-
-    Attributes:
-        deeplab: DeepLabWrapper
-            Model to train
-        dataloaders: torch.utils.data.DataLoader
-            Dataloaders to use for training
-        criterian: torch.nn.CrossEntropyLoss
-            Loss function to use
-        optimizer: torch.optim.Adam
-            Optimizer to use
-        num_epochs: int
-            Number of epochs to train
-
-    """
+    """This class trains DeepLab models given a configuration of hyperparameters"""
 
     def __init__(
         self,
@@ -34,21 +23,25 @@ class Trainer:
         optimizer: torch.optim.Adam,
         num_epochs: int = 25,
         logger=None,
+        save_model_path: str = None,
     ):
         """Initialization method for Trainer base class
 
         Args:
-            model: (torchvision.models.segmentation.deeplabv3)
-                the model used in training
+            deeplab: (DeepLabWrapper)
+                DeepLab model to train
             dataloaders: (torch.utils.data.DataLoader)
-                the dataloader to use
+                Dataloaders for training and validation
             criterion: (torch.nn.CrossEntropyLoss)
-                the loss function to use
+                Loss function to use for training
             optimizer: (torch.optim.Adam)
-                the optimizer to use
-            num_epochs: (int=25)
-                the number of epochs to train
-
+                Optimizer to use for training
+            num_epochs: (int, optional)
+                Number of epochs to train the model for
+            logger: (optional)
+                Logger to use for logging training metrics
+            save_model_path: (str, optional)
+                Path to save the trained model
         """
         self.deeplab = deeplab
         self.dataloaders = dataloaders
@@ -56,22 +49,24 @@ class Trainer:
         self.optimizer = optimizer
         self.num_epochs = num_epochs
         self.logger = logger
+        self.save_model_path = save_model_path
 
-    def train(self) -> None:
+    def train(self) -> Tuple[DeepLabWrapper, list]:
         """This function is used to train a model
 
         Returns:
             model, val_mean_iou_history
         """
         since = time.time()
-        from torchmetrics.segmentation import MeanIoU
-
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         val_mean_iou_history = []
         best_model_wts = copy.deepcopy(self.deeplab.model.state_dict())
         best_mean_iou = 0.0
         self.deeplab.model.to(device)
+
+        scaler = GradScaler()
+
         for epoch in range(self.num_epochs):
             print(f"Epoch {epoch + 1}/{self.num_epochs}")
             print("-" * 10)
@@ -96,12 +91,14 @@ class Trainer:
                     # track history if only in train
                     with torch.set_grad_enabled(phase == "train"):
                         # Get model outputs and calculate loss
-                        outputs = self.deeplab.model(inputs)
-                        loss = self.criterion(outputs["out"], labels)
+                        with autocast(device_type="cuda", dtype=torch.float16):
+                            outputs = self.deeplab.model(inputs)
+                            loss = self.criterion(outputs["out"], labels)
                         # backward + optimize only if in training phase
                         if phase == "train":
-                            loss.backward()
-                            self.optimizer.step()
+                            scaler.scale(loss).backward()
+                            scaler.step(self.optimizer)
+                            scaler.update()
 
                     # statistics
                     running_loss += loss.item() * inputs.size(0)
@@ -119,13 +116,12 @@ class Trainer:
                     )
 
                 print(f"{phase} Loss: {epoch_loss:.4f} mIoU: {epoch_mean_iou:.4f}")
-                # deep copy the model
-                if phase == "valid" and epoch_mean_iou > best_mean_iou:
-                    best_mean_iou = epoch_mean_iou
-                    best_model_wts = copy.deepcopy(self.deeplab.model.state_dict())
                 if phase == "valid":
                     val_mean_iou_history.append(epoch_mean_iou)
 
+                    if epoch_mean_iou > best_mean_iou:
+                        best_mean_iou = epoch_mean_iou
+                        best_model_wts = copy.deepcopy(self.deeplab.model.state_dict())
             print()
 
         time_elapsed = time.time() - since
@@ -134,6 +130,10 @@ class Trainer:
 
         # load best model weights
         self.deeplab.model.load_state_dict(best_model_wts)
+
+        # save the model
+        model_path = self.save_model_path or f"runs/{self.deeplab.backbone}_v1.{self.num_epochs}.pt"
+        self.deeplab.save_model(model_path)
 
         if self.logger:
             self.logger.finish()

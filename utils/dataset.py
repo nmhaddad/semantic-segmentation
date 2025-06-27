@@ -13,20 +13,7 @@ from torchvision.transforms import v2
 
 
 class YamahaCMUDataset(VisionDataset):
-    """A class that represents the Yamaha-CMU Off-Road dataset
-
-    Attributes:
-        root: (str)
-            the root directory
-        transforms: (Optional[Callable])
-            torch transforms to use
-
-    Methods:
-        __len__():
-            returns the length of the dataset
-        __getitem__(index):
-            returns the item at the given index of this dataset
-    """
+    """A class that represents the Yamaha-CMU Off-Road dataset"""
 
     def __init__(self, root: str, transforms: Optional[Callable] = None) -> None:
         """Initializes a YamahaCMUDataset object
@@ -66,7 +53,6 @@ class YamahaCMUDataset(VisionDataset):
         mask = np.array(mask)
         if mask.ndim == 3:
             mask = mask[:, :, 0]
-        image = tv_tensors.Image(image, dtype=torch.float32)
         mask = tv_tensors.Mask(mask, dtype=torch.long)
 
         if self.transforms:
@@ -75,31 +61,31 @@ class YamahaCMUDataset(VisionDataset):
         return image, mask
 
 
-def get_dataloader(data_dir: str, batch_size: int = 2) -> Dict[str, DataLoader]:
-    """Creates a dataloader for the given dataset
+def get_dataloaders(data_dir: str, batch_size: int = 2) -> Dict[str, DataLoader]:
+    """Returns dataloaders for the YamahaCMU dataset
 
     Args:
         data_dir: (str)
-            the directory of the dataset
-        batch_size: (int=2)
-            the batch size to use
+            the directory where the dataset is stored
+        batch_size: (int)
+            the batch size to use for the dataloaders
 
     Returns:
-        torch.utils.data.DataLoader
+        Dict[str, DataLoader]: a dictionary containing the train and validation dataloaders
     """
-
     transforms = v2.Compose(
         [
-            v2.ToTensor(),
+            v2.ColorJitter(brightness=0.1, contrast=0.1),
+            v2.ToImage(),
+            v2.ToDtype(torch.float32, scale=True),
             v2.RandomCrop(513),
             v2.RandomHorizontalFlip(p=0.5),
-            v2.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
             v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ]
     )
-
-    image_datasets = {x: YamahaCMUDataset(data_dir + x, transforms=transforms) for x in ["train", "valid"]}
-
+    image_datasets = {
+        subset: YamahaCMUDataset(data_dir + subset, transforms=transforms) for subset in ["train", "valid"]
+    }
     dataloaders = {
         x: DataLoader(image_datasets[x], batch_size=batch_size, pin_memory=True, shuffle=True, num_workers=4)
         for x in ["train", "valid"]
