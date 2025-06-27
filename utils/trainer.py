@@ -37,6 +37,7 @@ class Trainer:
         optimizer: torch.optim.Adam,
         num_epochs: int = 25,
         is_inception: bool = False,
+        logger=None,
     ):
         """Initialization method for Trainer base class
 
@@ -60,6 +61,7 @@ class Trainer:
         self.optimizer = optimizer
         self.num_epochs = num_epochs
         self.is_inception = is_inception
+        self.logger = logger
 
     def train(self) -> None:
         """This function is used to train a model
@@ -122,6 +124,16 @@ class Trainer:
 
                 epoch_loss = running_loss / len(self.dataloaders[phase].dataset)
                 epoch_mean_iou = running_mean_iou / len(self.dataloaders[phase])
+
+                if self.logger:
+                    self.logger.log(
+                        {
+                            f"{phase}_loss": epoch_loss,
+                            f"{phase}_mean_iou": epoch_mean_iou,
+                            "epoch": epoch + 1,
+                        }
+                    )
+
                 print("{} Loss: {:.4f} mIoU: {:.4f}".format(phase, epoch_loss, epoch_mean_iou))
                 # deep copy the model
                 if phase == "valid" and epoch_mean_iou > best_mean_iou:
@@ -138,4 +150,8 @@ class Trainer:
 
         # load best model weights
         self.deeplab.model.load_state_dict(best_model_wts)
+
+        if self.logger:
+            self.logger.finish()
+
         return self.deeplab, val_mean_iou_history

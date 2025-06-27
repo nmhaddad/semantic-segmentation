@@ -5,6 +5,7 @@ import os
 import torch
 import yaml
 
+import wandb
 from models import DeepLabWrapper
 from utils import Trainer, get_dataloader
 
@@ -13,6 +14,22 @@ with open("config/config.yaml", "r") as f:
 
 # create an output directory for the model if one doesn't exist
 os.makedirs("runs", exist_ok=True)
+
+# Start a new wandb run to track this script.
+run = wandb.init(
+    # Set the wandb entity where your project will be logged (generally your team name).
+    entity="nhaddad2112-duckasaurus",
+    # Set the wandb project where this run will be logged.
+    project="semantic-segmentation",
+    # Track hyperparameters and run metadata.
+    config={
+        "learning_rate": config.get("LEARNING_RATE", 1e-4),
+        "batch_size": config.get("BATCH_SIZE", 16),
+        "backbone": config.get("BACKBONE", "mobilenetv3large"),
+        "dataset": "Yamaha",
+        "epochs": config.get("NUM_EPOCHS", 25),
+    },
+)
 
 # create dataloaders
 dataloaders = get_dataloader(
@@ -26,7 +43,13 @@ model = DeepLabWrapper(backbone=config["BACKBONE"], num_mask_channels=config["NU
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters, lr=1e-4)
 trainer = Trainer(
-    model, dataloaders, criterion, optimizer, num_epochs=config["NUM_EPOCHS"], is_inception=config["IS_INCEPTION"]
+    model,
+    dataloaders,
+    criterion,
+    optimizer,
+    num_epochs=config["NUM_EPOCHS"],
+    is_inception=config["IS_INCEPTION"],
+    logger=run,
 )
 trainer.train()
 
