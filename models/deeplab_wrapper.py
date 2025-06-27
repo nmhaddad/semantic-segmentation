@@ -4,7 +4,15 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 from PIL import Image
-from torchvision import models, transforms
+from torchvision import transforms
+from torchvision.models.segmentation import (
+    DeepLabV3_MobileNet_V3_Large_Weights,
+    DeepLabV3_ResNet50_Weights,
+    DeepLabV3_ResNet101_Weights,
+    deeplabv3_mobilenet_v3_large,
+    deeplabv3_resnet50,
+    deeplabv3_resnet101,
+)
 from torchvision.models.segmentation.deeplabv3 import DeepLabHead
 
 
@@ -20,11 +28,6 @@ class DeepLabWrapper(pl.LightningModule):
             Number of output classes
         model_path: str
             Path to pretrained model to load
-        input_shape: Tuple[int, int]
-        input_width: int
-            Input width property
-        input_height: int
-            Input height property
         preprocess_transform: torchvision.transform
             transforms to apply to input images during inference
         parameters:
@@ -35,11 +38,7 @@ class DeepLabWrapper(pl.LightningModule):
         self,
         backbone=None,
         num_mask_channels=None,
-        input_shape=None,
         model_path=None,
-        pretrained: bool = True,
-        progress: bool = True,
-        aux_loss: bool = True,
     ):
         """Initializes a DeepLabWrapper object
 
@@ -48,29 +47,20 @@ class DeepLabWrapper(pl.LightningModule):
                 Which backbone to load. Options: mobilenetv3large, resnet50, resnet101
             num_mask_channels: int, optional
                 number of classes to predict
-            input_shape: Tuple[int, int], optional
-                Input shape (width, height)
             model_path: str, optional
                 Path for custom pretrained models
-            pretrained: bool, optional
-                Whether or not to use built-in pretrained weights
-            progress: bool, optional
-                Debug output for training
-            aux_loss: bool, optional
-                Use auxiliary loss when training Inception models
         """
         super().__init__()
         self.model = None
         self.backbone = backbone
         self.num_mask_channels = num_mask_channels
         self.model_path = model_path
-        self.input_shape = input_shape
         self.preprocess_transform = None
 
         if self.model_path:
             self.load_model()
         else:
-            self.initialize_model(pretrained, progress, aux_loss)
+            self.initialize_model()
 
         if not self.model:
             raise RuntimeError("Couldn't create model with given configuration")
@@ -81,26 +71,6 @@ class DeepLabWrapper(pl.LightningModule):
 
         if self.cuda:
             self.model.to("cuda")
-
-    @property
-    def input_width(self) -> int:
-        """Gets input width
-
-        Returns:
-            width: (int)
-                width of input images
-        """
-        return self.input_shape[0]
-
-    @property
-    def input_height(self) -> int:
-        """Gets input height
-
-        Returns:
-            height: (int)
-                height of input images
-        """
-        return self.input_shape[1]
 
     def load_model(self, eval: bool = True) -> None:
         """Loads a model from a file
@@ -134,35 +104,22 @@ class DeepLabWrapper(pl.LightningModule):
         """
         torch.save(self.model, model_path)
 
-    def initialize_model(self, pretrained: bool, progress: bool, aux_loss: bool):
+    def initialize_model(self):
         """Initializes a DeepLabv3 model from the torchvision package
 
-        Args:
-            pretrained: bool
-                Use a pretrained backbone
-            progress:
-                Show download progress
-            aux_loss:
-                Use auxiliary loss during training
 
         Returns:
             None
         """
         match self.backbone.lower():
             case "resnet101":
-                self.model = models.segmentation.deeplabv3_resnet101(
-                    pretrained=pretrained, progress=progress, aux_loss=aux_loss
-                )
+                self.model = deeplabv3_resnet101(weights=DeepLabV3_ResNet101_Weights.DEFAULT)
                 self.model.classifier = DeepLabHead(2048, self.num_mask_channels)
             case "resnet50":
-                self.model = models.segmentation.deeplabv3_resnet50(
-                    pretrained=pretrained, progress=progress, aux_loss=aux_loss
-                )
+                self.model = deeplabv3_resnet50(weights=DeepLabV3_ResNet50_Weights.DEFAULT)
                 self.model.classifier = DeepLabHead(2048, self.num_mask_channels)
             case "mobilenetv3large":
-                self.model = models.segmentation.deeplabv3_mobilenet_v3_large(
-                    pretrained=pretrained, progress=progress, aux_loss=aux_loss
-                )
+                self.model = deeplabv3_mobilenet_v3_large(weights=DeepLabV3_MobileNet_V3_Large_Weights.DEFAULT)
                 self.model.classifier = DeepLabHead(960, self.num_mask_channels)
             case _:
                 raise ValueError(
@@ -185,7 +142,5 @@ class DeepLabWrapper(pl.LightningModule):
         input_batch = self.preprocess(image)
         with torch.no_grad():
             output: torch.Tensor = self.model(input_batch)["out"][0]
-        breakpoint()
         output_predictions = output.argmax(0)
-        # TODO only numpy arrays!
-        return Image.fromarray(output_predictions.byte().cpu().numpy()).resize((self.input_width, self.input_height))
+        return Image.fromarray(output_predictions.byte().cpu().numpy())

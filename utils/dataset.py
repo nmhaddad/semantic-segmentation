@@ -1,14 +1,15 @@
 """YamahaCMU Dataloaders"""
 
 import glob
-from typing import Any, Callable, Optional
+from typing import Callable, Dict, Optional, Tuple
 
-import cv2
 import numpy as np
 import torch
 from PIL import Image
-from torchvision import transforms
+from torch.utils.data import DataLoader
+from torchvision import tv_tensors
 from torchvision.datasets.vision import VisionDataset
+from torchvision.transforms import v2
 
 
 class YamahaCMUDataset(VisionDataset):
@@ -27,7 +28,7 @@ class YamahaCMUDataset(VisionDataset):
             returns the item at the given index of this dataset
     """
 
-    def __init__(self, root: str, resize_shape: tuple, transforms: Optional[Callable] = None) -> None:
+    def __init__(self, root: str, transforms: Optional[Callable] = None) -> None:
         """Initializes a YamahaCMUDataset object
 
         Args:
@@ -37,27 +38,18 @@ class YamahaCMUDataset(VisionDataset):
                 torch transforms to use
         """
         super().__init__(root, transforms)
-        image_paths = []
-        mask_paths = []
+        self.image_paths = []
+        self.mask_paths = []
         image_mask_pairs = glob.glob(root + "/*/")
         for image_mask in image_mask_pairs:
-            image_paths.append(glob.glob(image_mask + "*.jpg")[0])
-            mask_paths.append(glob.glob(image_mask + "*.png")[0])
-        self.image_names = image_paths
-        self.mask_names = mask_paths
-
-        if resize_shape:
-            self.image_height, self.image_width = resize_shape
-            self.resize = True
-        else:
-            self.image_height, self.image_width = (544, 1024)
-            self.resize = False
+            self.image_paths.append(glob.glob(f"{image_mask}*.jpg")[0])
+            self.mask_paths.append(glob.glob(f"{image_mask}*.png")[0])
 
     def __len__(self) -> int:
         """Returns the length of the dataset"""
-        return len(self.image_names)
+        return len(self.image_paths)
 
-    def __getitem__(self, index: int) -> Any:
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """Returns the item at the given index of this dataset
 
         Args:
@@ -67,30 +59,23 @@ class YamahaCMUDataset(VisionDataset):
         Returns:
             the sample at the given index
         """
-        image_path = self.image_names[index]
-        mask_path = self.mask_names[index]
-        image = Image.open(image_path)
-        image = image.convert("RGB")
+        image_path = self.image_paths[index]
+        mask_path = self.mask_paths[index]
+        image = Image.open(image_path).convert("RGB")
         mask = Image.open(mask_path)
         mask = np.array(mask)
-        class_colors = np.unique(mask)
-        if self.resize:
-            mask = cv2.resize(mask, dsize=(self.image_width, self.image_height), interpolation=cv2.INTER_CUBIC)
-        # remove void class (atv)
-        if 0 in class_colors:
-            class_colors = class_colors[1:]
-        label_masks = mask == class_colors[:, None, None]
-        masks = np.zeros((8, self.image_height, self.image_width))
-        for index, class_color in enumerate(class_colors):
-            masks[class_color - 1] = label_masks[index, :, :] * 255
-        sample = {"image": image, "mask": masks}
+        if mask.ndim == 3:
+            mask = mask[:, :, 0]
+        image = tv_tensors.Image(image, dtype=torch.float32)
+        mask = tv_tensors.Mask(mask, dtype=torch.long)
+
         if self.transforms:
-            sample["image"] = self.transforms(sample["image"])
-            sample["mask"] = torch.as_tensor(sample["mask"], dtype=torch.uint8)
-        return sample
+            image, mask = self.transforms(image, mask)
+
+        return image, mask
 
 
-def get_dataloader(data_dir: str, batch_size: int = 2, resize_shape: tuple = None) -> torch.utils.data.DataLoader:
+def get_dataloader(data_dir: str, batch_size: int = 2) -> Dict[str, DataLoader]:
     """Creates a dataloader for the given dataset
 
     Args:
@@ -103,28 +88,20 @@ def get_dataloader(data_dir: str, batch_size: int = 2, resize_shape: tuple = Non
         torch.utils.data.DataLoader
     """
 
-    if resize_shape:
-        preprocess = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Resize(resize_shape),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ]
-        )
-    else:
-        preprocess = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ]
-        )
+    transforms = v2.Compose(
+        [
+            v2.ToTensor(),
+            v2.RandomCrop(513),
+            v2.RandomHorizontalFlip(p=0.5),
+            v2.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+            v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
 
-    image_datasets = {
-        x: YamahaCMUDataset(data_dir + x, resize_shape, transforms=preprocess) for x in ["train", "valid"]
-    }
+    image_datasets = {x: YamahaCMUDataset(data_dir + x, transforms=transforms) for x in ["train", "valid"]}
 
     dataloaders = {
-        x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, drop_last=True)
+        x: DataLoader(image_datasets[x], batch_size=batch_size, pin_memory=True, shuffle=True, num_workers=4)
         for x in ["train", "valid"]
     }
     return dataloaders

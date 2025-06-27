@@ -32,23 +32,21 @@ run = wandb.init(
 )
 
 # create dataloaders
-dataloaders = get_dataloader(
-    config["DATA_PATH"], batch_size=config["BATCH_SIZE"], resize_shape=(config["IMG_HEIGHT"], config["IMG_WIDTH"])
-)
+dataloaders = get_dataloader(config["DATA_PATH"], batch_size=config["BATCH_SIZE"])
+
 
 # create the model
 model = DeepLabWrapper(backbone=config["BACKBONE"], num_mask_channels=config["NUM_MASK_CHANNELS"])
 
 # train the model
 criterion = torch.nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters, lr=1e-4)
+optimizer = torch.optim.Adam(model.parameters, lr=float(config["LEARNING_RATE"]))
 trainer = Trainer(
     model,
     dataloaders,
     criterion,
     optimizer,
     num_epochs=config["NUM_EPOCHS"],
-    is_inception=config["IS_INCEPTION"],
     logger=run,
 )
 trainer.train()

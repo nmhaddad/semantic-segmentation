@@ -33,27 +33,6 @@ def freeze_layers(model, start: int, stop: int) -> None:
                     parameter.requires_grad = False
 
 
-def mean_iou(outputs: torch.Tensor, labels: torch.Tensor) -> float:
-    """Calculates the mean IoU (Jaccard index) between
-        two tensors. Shape expected to be same.
-
-    Args:
-        outputs: (torch.Tensor)
-            the output of a model
-        labels: (torch.Tensor)
-            the ground truth labels
-
-    Returns:
-        float
-    """
-    outputs = outputs.byte()
-    labels = labels.byte()
-    intersection = torch.logical_and(labels, outputs)
-    union = torch.logical_or(labels, outputs)
-    iou_score = torch.sum(intersection) / torch.sum(union)
-    return iou_score.mean()
-
-
 def imshow(image: Image) -> None:
     """Displays an image
 

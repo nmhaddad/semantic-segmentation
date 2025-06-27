@@ -8,8 +8,6 @@ from tqdm import tqdm
 
 from models import DeepLabWrapper
 
-from .utils import mean_iou
-
 
 class Trainer:
     """This class trains DeepLab models given a configuration of hyperparameters
@@ -25,8 +23,7 @@ class Trainer:
             Optimizer to use
         num_epochs: int
             Number of epochs to train
-        is_inception: bool
-            Use auxiliary outputs and loss during training
+
     """
 
     def __init__(
@@ -36,7 +33,6 @@ class Trainer:
         criterion: torch.nn.CrossEntropyLoss,
         optimizer: torch.optim.Adam,
         num_epochs: int = 25,
-        is_inception: bool = False,
         logger=None,
     ):
         """Initialization method for Trainer base class
@@ -52,15 +48,13 @@ class Trainer:
                 the optimizer to use
             num_epochs: (int=25)
                 the number of epochs to train
-            is_inception: (bool)
-                whether or not to use auxiliary outputs in training
+
         """
         self.deeplab = deeplab
         self.dataloaders = dataloaders
         self.criterion = criterion
         self.optimizer = optimizer
         self.num_epochs = num_epochs
-        self.is_inception = is_inception
         self.logger = logger
 
     def train(self) -> None:
@@ -69,9 +63,11 @@ class Trainer:
         Returns:
             model, val_mean_iou_history
         """
-        self.deeplab.model.train()
         since = time.time()
+        from torchmetrics.segmentation import MeanIoU
+
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
         val_mean_iou_history = []
         best_model_wts = copy.deepcopy(self.deeplab.model.state_dict())
         best_mean_iou = 0.0
@@ -86,33 +82,22 @@ class Trainer:
                 else:
                     self.deeplab.model.eval()
 
+                mean_iou = MeanIoU(num_classes=self.deeplab.num_mask_channels).to(device)
                 running_loss = 0.0
-                running_mean_iou = 0
 
                 # Iterate over data.
-                for sample in tqdm(iter(self.dataloaders[phase])):
-                    inputs = sample["image"].to(device)
-                    labels = sample["mask"].to(device)
-
-                    label = torch.argmax(labels, dim=1)
-
+                for inputs, labels in tqdm(iter(self.dataloaders[phase])):
+                    inputs = inputs.to(device)
+                    labels = labels.to(device)
+                    # zero the parameter gradients
                     self.optimizer.zero_grad()
 
                     # forward
                     # track history if only in train
                     with torch.set_grad_enabled(phase == "train"):
                         # Get model outputs and calculate loss
-                        if self.is_inception and phase == "train":
-                            outputs = self.deeplab.model(inputs)
-                            loss1 = self.criterion(outputs["out"], label)
-                            loss2 = self.criterion(outputs["aux"], label)
-                            loss = loss1 + 0.4 * loss2
-                        else:
-                            outputs = self.deeplab.model(inputs)
-                            outputs["out"] = outputs["out"].to(device)
-                            loss = self.criterion(outputs["out"], label)
-                        _, preds = torch.max(outputs["out"], 1)
-
+                        outputs = self.deeplab.model(inputs)
+                        loss = self.criterion(outputs["out"], labels)
                         # backward + optimize only if in training phase
                         if phase == "train":
                             loss.backward()
@@ -120,10 +105,9 @@ class Trainer:
 
                     # statistics
                     running_loss += loss.item() * inputs.size(0)
-                    running_mean_iou += mean_iou(torch.argmax(outputs["out"], 1), label).item()
-
+                    mean_iou.update(torch.argmax(outputs["out"], 1), labels)
                 epoch_loss = running_loss / len(self.dataloaders[phase].dataset)
-                epoch_mean_iou = running_mean_iou / len(self.dataloaders[phase])
+                epoch_mean_iou = mean_iou.compute().item()
 
                 if self.logger:
                     self.logger.log(
@@ -134,7 +118,7 @@ class Trainer:
                         }
                     )
 
-                print("{} Loss: {:.4f} mIoU: {:.4f}".format(phase, epoch_loss, epoch_mean_iou))
+                print(f"{phase} Loss: {epoch_loss:.4f} mIoU: {epoch_mean_iou:.4f}")
                 # deep copy the model
                 if phase == "valid" and epoch_mean_iou > best_mean_iou:
                     best_mean_iou = epoch_mean_iou
@@ -145,8 +129,8 @@ class Trainer:
             print()
 
         time_elapsed = time.time() - since
-        print("Training complete in {:.0f}m {:.0f}s".format(time_elapsed // 60, time_elapsed % 60))
-        print("Best val mean IoU: {:4f}".format(best_mean_iou))
+        print(f"Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s")
+        print(f"Best val mean IoU: {best_mean_iou:4f}")
 
         # load best model weights
         self.deeplab.model.load_state_dict(best_model_wts)
