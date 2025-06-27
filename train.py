@@ -33,7 +33,7 @@ model = DeepLabWrapper(backbone=config["BACKBONE"], num_mask_channels=config["NU
 class_weights = torch.tensor(config["CLASS_WEIGHTS"])
 class_weights = class_weights.to("cuda")
 criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
-optimizer = torch.optim.Adam(model.parameters, lr=float(config["LEARNING_RATE"]))
+optimizer = torch.optim.AdamW(model.parameters, lr=float(config["LEARNING_RATE"]))
 trainer = Trainer(
     model,
     dataloaders,

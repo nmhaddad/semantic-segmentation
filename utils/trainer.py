@@ -6,7 +6,8 @@ from typing import Tuple
 
 import torch
 from torch.amp import GradScaler, autocast
-from torchmetrics.segmentation import MeanIoU
+from torch.nn.functional import one_hot
+from torchmetrics.segmentation import GeneralizedDiceScore, MeanIoU
 from tqdm import tqdm
 
 from models import DeepLabWrapper
@@ -77,7 +78,14 @@ class Trainer:
                 else:
                     self.deeplab.model.eval()
 
-                mean_iou = MeanIoU(num_classes=self.deeplab.num_mask_channels).to(device)
+                mean_iou = MeanIoU(
+                    num_classes=self.deeplab.num_mask_channels,
+                    include_background=False,
+                ).to(device)
+                gds = GeneralizedDiceScore(
+                    num_classes=self.deeplab.num_mask_channels,
+                    include_background=False,
+                ).to(device)
                 running_loss = 0.0
 
                 # Iterate over data.
@@ -94,6 +102,7 @@ class Trainer:
                         with autocast(device_type="cuda", dtype=torch.float16):
                             outputs = self.deeplab.model(inputs)
                             loss = self.criterion(outputs["out"], labels)
+                        preds = torch.argmax(outputs["out"], dim=1)
                         # backward + optimize only if in training phase
                         if phase == "train":
                             scaler.scale(loss).backward()
@@ -102,20 +111,32 @@ class Trainer:
 
                     # statistics
                     running_loss += loss.item() * inputs.size(0)
-                    mean_iou.update(torch.argmax(outputs["out"], 1), labels)
+                    mean_iou.update(preds, labels)
+                    gds.update(
+                        one_hot(
+                            preds,
+                            num_classes=self.deeplab.num_mask_channels,
+                        ).permute(0, 3, 1, 2),
+                        one_hot(
+                            labels,
+                            num_classes=self.deeplab.num_mask_channels,
+                        ).permute(0, 3, 1, 2),
+                    )
                 epoch_loss = running_loss / len(self.dataloaders[phase].dataset)
                 epoch_mean_iou = mean_iou.compute().item()
+                epoch_gds = gds.compute().item()
 
                 if self.logger:
                     self.logger.log(
                         {
                             f"{phase}_loss": epoch_loss,
                             f"{phase}_mean_iou": epoch_mean_iou,
+                            f"{phase}_gds": epoch_gds,
                             "epoch": epoch + 1,
                         }
                     )
 
-                print(f"{phase} Loss: {epoch_loss:.4f} mIoU: {epoch_mean_iou:.4f}")
+                print(f"{phase} Loss: {epoch_loss:.4f} mIoU: {epoch_mean_iou:.4f} GDS: {epoch_gds:.4f}")
                 if phase == "valid":
                     val_mean_iou_history.append(epoch_mean_iou)
 
